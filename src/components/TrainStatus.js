@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import TrainInfo from './TrainInfo';
 import TrainSchedule from './TrainSchedule';
+import './TrainStatus.css';
 
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
@@ -10,6 +11,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [isTrainActive, setIsTrainActive] = useState(true); // To track if the train is active
   const [nextStop, setNextStop] = useState(null); // To store the next stop
   const [lastStop, setLastStop] = useState(null); // To store the last stop
+  const [showTrainPrefix, setShowTrainPrefix] = useState(false); // State to manage the "Train" prefix
+  const [isEditing, setIsEditing] = useState(false); // State to track if the input field is being edited
 
   const fetchTrainStopList = useCallback(async (number) => { // Gets train information from API
     let token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get API token from .env file
@@ -56,6 +59,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
       setTrainData(data);
       determineStops(data); // After the data is acquired, this call determines the next and last stops
+      setShowTrainPrefix(true); // Show the "Train" prefix after successful data fetch
+      setIsEditing(false); // Reset editing state after successful data fetch
     } catch (err) {
       setError(err.message);
     } finally {
@@ -91,8 +96,26 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   const handleSubmit = (e) => { // When the form is submitted, the entire page is prevented from reloading, and the train data is fetched
     e.preventDefault();
+    if (!trainNumber) return; // Prevent submission if trainNumber is empty
     console.log('REACT_APP_TEST:', process.env.REACT_APP_TEST);
     fetchTrainStopList(trainNumber);
+  };
+
+  const handleFocus = () => {
+    setShowTrainPrefix(false); // Hide the "Train" prefix when input is focused
+    setIsEditing(true); // Set editing state to true when input is focused
+  };
+
+  const handleBlur = () => {
+    if (trainNumber && trainData && !error && !isEditing) {
+      setShowTrainPrefix(true); // Show the "Train" prefix when input loses focus and conditions are met
+    }
+  };
+
+  const handleChange = (e) => {
+    setTrainNumber(e.target.value);
+    setShowTrainPrefix(false); // Hide the "Train" prefix when user is typing
+    setIsEditing(true); // Set editing state to true when user is typing
   };
 
   // Determine the next stop and last stop
@@ -197,11 +220,20 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
         <input
           type="text"
           placeholder="Enter Train Number"
-          value={trainNumber}
-          onChange={(e) => setTrainNumber(e.target.value)}
+          value={showTrainPrefix && trainNumber && !isEditing ? `Train ${trainNumber}` : trainNumber}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           style={styles.input}
         />
-        <button type="submit" style={styles.button}>
+        <button
+          type="submit"
+          style={{
+            ...styles.button,
+            ...(trainNumber ? {} : styles.buttonDisabled), // Apply disabled style if trainNumber is empty
+          }}
+          disabled={!trainNumber} // Disable button if trainNumber is empty
+        >
           {loading ? <div style={styles.loadingCircle}></div> : 'Check Status'}
         </button>
       </form>
@@ -246,6 +278,10 @@ const styles = {
     marginRight: '10px',
     boxSizing: 'border-box', // Include padding in the element's total width and height
     height: '40px', // Ensure the input field matches the height of the button
+    borderRadius: '5px', // Rounded corners
+    border: '1px solid #ccc', // Light grey border
+    outline: 'none', // Remove default outline
+    transition: 'border-color 0.3s', // Smooth transition for border color
   },
   button: {
     display: 'flex',
@@ -257,6 +293,19 @@ const styles = {
     boxSizing: 'border-box', // Include padding in the element's total width and height
     minWidth: '140px', // Ensure the button does not resize
     height: '40px', // Ensure the button height is fixed
+    borderRadius: '5px', // Rounded corners
+    border: 'none', // Remove default border
+    backgroundColor: '#4CAF50', // Green color
+    color: '#fff', // White text
+    transition: 'background-color 0.3s, transform 0.3s', // Smooth transition for background color and transform
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc', // Grey color for disabled button
+    cursor: 'not-allowed', // Change cursor to not-allowed
+  },
+  buttonHover: {
+    backgroundColor: '#e0702c', // Darker orange on hover
+    transform: 'scale(1.05)', // Slightly enlarge on hover
   },
   loadingCircle: {
     border: '4px solid #f3f3f3', // Light grey
@@ -294,8 +343,4 @@ const styleSheet = document.styleSheets[0];
 styleSheet.insertRule(`
   @keyframes spin {
     0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`, styleSheet.cssRules.length);
-
-export default TrainStatus;
+    100% { transform: rotate(360deg); }  }`, styleSheet.cssRules.length);styleSheet.insertRule(`  button:hover {    background-color: #e0702c; // Darker orange on hover    transform: scale(1.05); // Slightly enlarge on hover  }`, styleSheet.cssRules.length);export default TrainStatus;

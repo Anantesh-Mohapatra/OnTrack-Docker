@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import './PopularTrains.css';
 
 const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const popularTrainNumbers = [3326, 3255, 3256, 3883]; // List of popular trains
+  const popularTrainNumbers = useMemo(() => [3326, 3255, 3256, 3883], []); // Wrap in useMemo
 
   // Fetch API key from external URL if undefined or null
   const fetchApiKey = async () => {
@@ -22,7 +21,6 @@ const PopularTrains = ({ onSelectTrain }) => {
   // Fetch data for the popular trains
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
     };
 
     window.addEventListener('resize', handleResize);
@@ -74,7 +72,7 @@ const PopularTrains = ({ onSelectTrain }) => {
     };
 
     fetchAllTrainsData(); // Runs the function so the data is ready when the component is rendered
-  }, []);
+  }, [popularTrainNumbers]);
 
   // Calculate time to specific stations
   const getTimeToStation = (stops, targetStation) => {
