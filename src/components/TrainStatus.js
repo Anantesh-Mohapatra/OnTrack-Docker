@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import TrainInfo from './TrainInfo';
+import TrainSchedule from './TrainSchedule';
 
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
@@ -9,25 +11,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [nextStop, setNextStop] = useState(null); // To store the next stop
   const [lastStop, setLastStop] = useState(null); // To store the last stop
 
-  useEffect(() => { // Sees if there's a train number given, and fetches the relevant information
-    if (initialTrainNumber) {
-      setTrainNumber(initialTrainNumber);
-      fetchTrainStopList(initialTrainNumber);
-    }
-  }, [initialTrainNumber]);
-
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
-      const data = await response.json();
-      return data.apiKey;
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      return null;
-    }
-  };
-
-  const fetchTrainStopList = async (number) => { // Gets train information from API
+  const fetchTrainStopList = useCallback(async (number) => { // Gets train information from API
     let token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get API token from .env file
 
     if (!token) { // If token is not found in .env file
@@ -84,6 +68,24 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       } else {
         setLoading(false);
       }
+    }
+  }, []);
+
+  useEffect(() => { // Sees if there's a train number given, and fetches the relevant information
+    if (initialTrainNumber) {
+      setTrainNumber(initialTrainNumber);
+      fetchTrainStopList(initialTrainNumber);
+    }
+  }, [initialTrainNumber, fetchTrainStopList]);
+
+  const fetchApiKey = async () => {
+    try {
+      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
+      const data = await response.json();
+      return data.apiKey;
+    } catch (err) {
+      console.error('Error fetching API key:', err);
+      return null;
     }
   };
 
@@ -157,18 +159,6 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     // If arrival time is later than departure time, then it's late. Otherwise, it's on time.
   };
 
-  // Format status with green/red color
-  const formatStatus = (status) => {
-    switch (status) {
-      case 'On Time':
-        return <span style={{ color: 'green' }}>On Time</span>; // Formats On Time status
-      case 'Late':
-        return <span style={{ color: 'red' }}>Late</span>; // Formats Late status
-      default:
-        return status || 'N/A'; // Error handling
-    }
-  };
-
   // Calculate the minutes until the next stop's arrival
   const getMinutesUntilArrival = (time) => {
     if (!time) return 'N/A'; // Error handling
@@ -219,68 +209,22 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {!loading && trainData && (
         <div>
-          <h2>Train {trainData.TRAIN_ID} Info</h2>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-            <div
-              style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: trainData.BACKCOLOR,
-                marginRight: '10px',
-              }}
-            ></div>
-            <span>Line Code: {trainData.LINECODE || 'N/A'}</span>
-          </div>
-
-          {/* Display next and last stop information */}
-          {isTrainActive ? (
-            <div style={{ marginBottom: '10px' }}>
-              <strong>Next Stop:</strong> {nextStop?.STATIONNAME || 'N/A'} in{' '}
-              {getMinutesUntilArrival(nextStop?.TIME)} minutes (
-              {formatStatus(getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME))}).
-            </div>
-          
-          ) : (
-            <div style={{ marginBottom: '10px', fontStyle: 'italic', color: 'red' }}>
-              This train has concluded its journey at {lastStop?.STATIONNAME || 'N/A'}.
-            </div>
-          )}
-
-          <div style={{ marginBottom: '10px' }}>
-            <strong>Last Stop:</strong> {lastStop?.STATIONNAME || 'N/A'}
-          </div>
-
-          <h2>Schedule</h2>
-          <table style={isTrainActive ? styles.table : styles.greyedTable}>
-            <thead>
-              <tr>
-                <th style={styles.header}>Station</th>
-                <th style={styles.header}>Arrival</th>
-                <th style={styles.header}>Departure</th>
-                <th style={styles.header}>Status</th>
-                <th style={styles.header}>Departed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trainData.STOPS.map((stop, index) => (
-                <tr
-                  key={index}
-                  style={
-                    stop.STATIONNAME === nextStop?.STATIONNAME && isTrainActive
-                      ? { backgroundColor: '#FFFFCC' } // Highlight next stop if active
-                      : {}
-                  }
-                >
-                  <td style={styles.cell}>{stop.STATIONNAME || 'N/A'}</td>
-                  <td style={styles.cell}>{formatTime(stop.TIME)}</td>
-                  <td style={styles.cell}>{formatTime(stop.DEP_TIME)}</td>
-                  <td style={styles.cell}>{formatStatus(getStopStatus(stop.TIME, stop.DEP_TIME))}</td>
-                  <td style={styles.cell}>{stop.DEPARTED === 'YES' ? 'Yes' : 'No'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TrainInfo
+            trainData={trainData}
+            isTrainActive={isTrainActive}
+            nextStop={nextStop}
+            lastStop={lastStop}
+            getMinutesUntilArrival={getMinutesUntilArrival}
+            getStopStatus={getStopStatus}
+          />
+          <TrainSchedule
+            trainData={trainData}
+            isTrainActive={isTrainActive}
+            nextStop={nextStop}
+            formatTime={formatTime}
+            getStopStatus={getStopStatus}
+            styles={styles}
+          />
         </div>
       )}
     </div>
