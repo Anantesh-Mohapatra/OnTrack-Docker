@@ -64,6 +64,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   const handleSubmit = (e) => { // When the form is submitted, the entire page is prevented from reloading, and the train data is fetched
     e.preventDefault();
+    console.log('REACT_APP_TEST:', process.env.REACT_APP_TEST);
     fetchTrainStopList(trainNumber);
   };
 
