@@ -4,10 +4,32 @@ const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
   const popularTrainNumbers = [3326, 3255, 3256, 3883]; // List of popular trains
 
+  // Fetch API key from external URL if undefined or null
+  const fetchApiKey = async () => {
+    try {
+      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
+      const data = await response.json();
+      return data.apiKey;
+    } catch (err) {
+      console.error('Error fetching API key:', err);
+      return null;
+    }
+  };
+
   // Fetch data for the popular trains
   useEffect(() => {
     const fetchTrainData = async (trainNumber) => { // Get train data from NJTransit API
-      const token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get NJTransit API key from .env file
+      let token = process.env.REACT_APP_NJTRANSIT_API_KEY;
+
+      if (!token) { // If token is not found in .env file
+        console.log('Local .env secret not found, using external URL');
+        token = await fetchApiKey(); // Fetch token from external URL
+        if (!token) { // If token is still not found
+          console.error('Token not found. Please check .env setup.');
+          return null;
+        }
+      }
+
       const formData = new FormData();
       formData.append('token', token);
       formData.append('train', trainNumber);
