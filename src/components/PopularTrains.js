@@ -205,7 +205,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center', // Vertically center the text
     justifyContent: 'center', // Center the text horizontally
-    marginTop: '-2px', // Move the text a bit up
+    padding: '2px 0', // Ensure vertical centering
   },
   statusCircle: {
     width: '10px',
@@ -218,6 +218,16 @@ const styles = {
     boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.5)', // Add inner shadow on hover
   },
 };
+
+// Add media query for mobile devices
+const styleSheet = document.styleSheets[0];
+styleSheet.insertRule(`
+  @media (max-width: 768px) {
+    .statusText {
+      marginTop: '0px'; // Adjusted for mobile
+    }
+  }
+`, styleSheet.cssRules.length);
 
 // Add hover effect
 document.addEventListener('DOMContentLoaded', () => {

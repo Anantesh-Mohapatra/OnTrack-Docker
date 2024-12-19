@@ -256,8 +256,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             <thead>
               <tr>
                 <th style={styles.header}>Station</th>
-                <th style={styles.header}>Arrival Time</th>
-                <th style={styles.header}>Departure Time</th>
+                <th style={styles.header}>Arrival</th>
+                <th style={styles.header}>Departure</th>
                 <th style={styles.header}>Status</th>
                 <th style={styles.header}>Departed</th>
               </tr>
