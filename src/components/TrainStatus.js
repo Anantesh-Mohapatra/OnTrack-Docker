@@ -47,6 +47,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     formData.append('token', token);
     formData.append('train', number);
 
+    const startTime = Date.now(); // Record the start time
+
     try {
       const response = await fetch(
         'https://raildata.njtransit.com/api/TrainData/getTrainStopList',
@@ -73,7 +75,15 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      const elapsedTime = Date.now() - startTime;
+      const minimumLoadingTime = 1000; // Minimum loading time in milliseconds (1 second)
+      const remainingTime = minimumLoadingTime - elapsedTime;
+
+      if (remainingTime > 0) {
+        setTimeout(() => setLoading(false), remainingTime);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -202,13 +212,12 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
           style={styles.input}
         />
         <button type="submit" style={styles.button}>
-          Check Status
+          {loading ? <div style={styles.loadingCircle}></div> : 'Check Status'}
         </button>
       </form>
       
-      {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {trainData && (
+      {!loading && trainData && (
         <div>
           <h2>Train {trainData.TRAIN_ID} Info</h2>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
@@ -282,7 +291,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 const styles = {
   form: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'center', // Changed to center to align loading circle
     justifyContent: 'center',
     marginBottom: '20px',
   },
@@ -291,11 +300,29 @@ const styles = {
     fontSize: '16px',
     width: '200px',
     marginRight: '10px',
+    boxSizing: 'border-box', // Include padding in the element's total width and height
+    height: '40px', // Ensure the input field matches the height of the button
   },
   button: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: '10px 20px',
     fontSize: '16px',
     cursor: 'pointer',
+    boxSizing: 'border-box', // Include padding in the element's total width and height
+    minWidth: '140px', // Ensure the button does not resize
+    height: '40px', // Ensure the button height is fixed
+  },
+  loadingCircle: {
+    border: '4px solid #f3f3f3', // Light grey
+    borderTop: '4px solid #f0803c', // Accent color 1
+    borderRight: '4px solid #b21b90', // Accent color 2
+    borderBottom: '4px solid #004f9b', // Accent color 3
+    borderRadius: '50%',
+    width: '20px',
+    height: '20px',
+    animation: 'spin 1s linear infinite',
   },
   table: {
     width: '100%',
@@ -317,5 +344,14 @@ const styles = {
     padding: '8px',
   },
 };
+
+// Add keyframes for the loading circle animation
+const styleSheet = document.styleSheets[0];
+styleSheet.insertRule(`
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`, styleSheet.cssRules.length);
 
 export default TrainStatus;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import './PopularTrains.css';
 
 const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const popularTrainNumbers = [3326, 3255, 3256, 3883]; // List of popular trains
 
   // Fetch API key from external URL if undefined or null
@@ -17,6 +20,16 @@ const PopularTrains = ({ onSelectTrain }) => {
   };
 
   // Fetch data for the popular trains
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Ensure the initial state is set correctly
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const fetchTrainData = async (trainNumber) => { // Get train data from NJTransit API
       let token = process.env.REACT_APP_NJTRANSIT_API_KEY;
@@ -88,12 +101,13 @@ const PopularTrains = ({ onSelectTrain }) => {
   return (
     <div style={{ marginBottom: '20px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Popular Trains</h2>
-      <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+      <div style={styles.trainContainer}>
         {popularTrainNumbers.map((trainNumber, index) => {
           const train = trainsData[index];
           const isAvailable = train && train.TRAIN_ID;
           const backgroundColor = isAvailable ? train.BACKCOLOR : '#888888';
           const textColor = isAvailable ? train.FORECOLOR : '#FFFFFF';
+          const pillBackgroundColor = isAvailable ? '#b0b0b0' : '#666666'; // Greyer/darker variant of the button background color
 
           // Determine target station: Woodbridge, Metropark, or New York Penn Station
           let targetStation = 'N/A';
@@ -114,12 +128,18 @@ const PopularTrains = ({ onSelectTrain }) => {
             ? getStopStatus(train.STOPS[0]?.TIME, train.STOPS[0]?.DEP_TIME)
             : 'N/A';
 
+          // Determine circle color based on status
+          const circleColor = customStatus === 'On Time' ? '#90EE90' : 'red';
+
           // Handle display text when the train is not active
           const displayText = isAvailable
             ? (
               <>
-                <p>Status: {customStatus}</p>
-                <p>To {targetStation}: {timeToStation}</p>
+                <p style={styles.stationText}>To {targetStation}: {timeToStation}</p>
+                <div style={{ ...styles.statusPill, color: textColor, backgroundColor: pillBackgroundColor }}>
+                  <span style={styles.statusText}>{customStatus}</span>
+                  <span style={{ ...styles.statusCircle, borderColor: textColor, backgroundColor: circleColor }}></span>
+                </div>
               </>
             )
             : <p>Train is not currently active</p>;
@@ -128,15 +148,16 @@ const PopularTrains = ({ onSelectTrain }) => {
             <div
               key={trainNumber}
               onClick={() => isAvailable && onSelectTrain(trainNumber)}
+              className="trainCard" // Add class for hover effect
               style={{
+                ...styles.trainCard,
                 backgroundColor,
                 color: textColor,
-                width: '150px',
-                padding: '10px',
-                borderRadius: '5px',
-                textAlign: 'center',
                 cursor: isAvailable ? 'pointer' : 'not-allowed',
                 opacity: isAvailable ? 1 : 0.5,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between', // Ensure consistent placement of the pill
               }}
             >
               <h3>Train {trainNumber}</h3>
@@ -148,5 +169,67 @@ const PopularTrains = ({ onSelectTrain }) => {
     </div>
   );
 };
+
+// Add responsive styles
+const styles = {
+  trainContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap', // Allow wrapping for mobile devices
+    maxWidth: '100%', // Ensure container does not exceed screen width
+  },
+  trainCard: {
+    width: '120px', // Smaller width for compact display
+    padding: '10px',
+    borderRadius: '5px',
+    textAlign: 'center',
+    margin: '10px', // Add margin for spacing between cards
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between', // Ensure consistent placement of the pill
+    transition: 'transform 0.2s', // Add transition for hover effect
+  },
+  stationText: {
+    marginTop: '0px', // Reduce top margin to move the text up
+  },
+  statusPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '2px 5px', // Decrease the size of the pill
+    borderRadius: '15px',
+    marginBottom: '5px',
+  },
+  statusText: {
+    flex: 1, // Ensure the text takes up the remaining space
+    textAlign: 'center', // Center the text
+    display: 'flex',
+    alignItems: 'center', // Vertically center the text
+    justifyContent: 'center', // Center the text horizontally
+    marginTop: '-2px', // Move the text a bit up
+  },
+  statusCircle: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    border: '1px solid',
+    marginLeft: '5px', // Move the circle to the right of the status
+  },
+  trainCardHover: {
+    boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.5)', // Add inner shadow on hover
+  },
+};
+
+// Add hover effect
+document.addEventListener('DOMContentLoaded', () => {
+  const trainCards = document.querySelectorAll('.trainCard');
+  trainCards.forEach(card => {
+    card.addEventListener('mouseover', () => {
+      card.style.transform = 'scale(1.05)';
+    });
+    card.addEventListener('mouseout', () => {
+      card.style.transform = 'scale(1)';
+    });
+  });
+});
 
 export default PopularTrains;

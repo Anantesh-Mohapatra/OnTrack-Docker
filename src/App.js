@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import TrainStatus from './components/TrainStatus';
 import PopularTrains from './components/PopularTrains';
+import 'react-responsive-carousel/lib/styles/carousel.min.css'; // Import carousel CSS
 
 const App = () => {
   const [selectedTrain, setSelectedTrain] = useState('');

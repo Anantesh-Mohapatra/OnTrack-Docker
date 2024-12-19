@@ -1,0 +1,3 @@
+.trainCard:hover {
+  transform: scale(1.05); /* Scale up the button on hover */
+}
