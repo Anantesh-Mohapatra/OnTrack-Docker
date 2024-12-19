@@ -107,7 +107,7 @@ const PopularTrains = ({ onSelectTrain }) => {
           const isAvailable = train && train.TRAIN_ID;
           const backgroundColor = isAvailable ? train.BACKCOLOR : '#888888';
           const textColor = isAvailable ? train.FORECOLOR : '#FFFFFF';
-          const pillBackgroundColor = isAvailable ? '#b0b0b0' : '#666666'; // Greyer/darker variant of the button background color
+          const pillBackgroundColor = isAvailable ? 'rgba(160, 160, 160, 0.8)' : 'rgba(102, 102, 102, 0.8)'; // Ensure translucent
 
           // Determine target station: Woodbridge, Metropark, or New York Penn Station
           let targetStation = 'N/A';
@@ -198,6 +198,7 @@ const styles = {
     padding: '2px 5px', // Decrease the size of the pill
     borderRadius: '15px',
     marginBottom: '5px',
+    backgroundColor: 'rgba(160, 160, 160, 0.8)', // Ensure translucent
   },
   statusText: {
     flex: 1, // Ensure the text takes up the remaining space
