@@ -13,7 +13,11 @@ const App = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>NJTransit Train Tracker</h1>
+      <div style={styles.titleContainer}>
+        <div style={styles.strip}></div>
+        <h1 style={styles.title}>OnTrack</h1>
+        <div style={styles.strip}></div>
+      </div>
       
       {/* Add the PopularTrains component */}
       <PopularTrains onSelectTrain={handleSelectTrain} />
@@ -31,9 +35,23 @@ const styles = {
     margin: '0 auto',
     maxWidth: '800px',
   },
-  title: {
+  titleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: '20px',
-    textAlign: 'center',
+  },
+  title: {
+    fontFamily: 'Arial, sans-serif',
+    fontStyle: 'italic',
+    fontSize: '2em',
+    margin: '0 10px',
+  },
+  strip: {
+    width: '50px',
+    height: '15px',
+    background: 'linear-gradient(45deg, #f0803d, #b31b90, #014c97)',
+    transform: 'skewX(-20deg)',
   },
 };
 
