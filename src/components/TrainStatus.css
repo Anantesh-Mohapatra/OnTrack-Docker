@@ -1,3 +1,101 @@
 button:hover {
   transform: scale(1.05); /* Slightly enlarge on hover */
 }
+
+.pillContainer {
+  border-radius: 25px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  position: relative; /* Added to position background image */
+}
+
+.copyIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.lineCircle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-left: 10px; /* Adjusted margin to 10 pixels */
+  position: relative;
+  cursor: pointer;
+}
+
+.lineCircle:hover .copyIcon {
+  opacity: 1;
+}
+
+.header {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.linePill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-radius: 15px;
+  border: 2px solid;
+  margin-bottom: 10px;
+  max-width: 200px; /* Reduced width */
+}
+
+.lineText {
+  flex: 1;
+  text-align: left;
+  display: flex;
+  align-items: center; /* Vertically center the text */
+}
+
+.activeInfo {
+  margin-bottom: 10px;
+}
+
+.inactiveInfo {
+  margin-bottom: 10px;
+  font-style: italic;
+  color: red;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  width: 100px;
+  padding: 5px 10px; /* Increased size to match PopularTrains */
+  border-radius: 15px;
+  margin-bottom: 5px;
+  background-color: rgba(160, 160, 160, 0.8);
+}
+
+.statusText {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Align text to the left */
+  padding: 2px 0;
+  color: #FFFFFF; /* Always white color */
+}
+
+.statusCircle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #FFFFFF; /* Always white border color */
+  margin-left: 5px;
+}
+
+@media (max-width: 600px) {
+  .departedColumn {
+    display: none;
+  }
+}
