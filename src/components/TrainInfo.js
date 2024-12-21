@@ -1,7 +1,7 @@
 import React from 'react';
-import { FaRegCopy } from 'react-icons/fa'; // Importing a modern copy icon from react-icons
+import { FaRegCopy } from 'react-icons/fa';
 import lineNames from '../data/lineNames.json';
-import './TrainStatus.css'; // Import the CSS file
+import '../styles/TrainInfo.css'; // Updated import path
 
 const copyToClipboard = (trainNumber) => {
   const message = `I am on Train ${trainNumber}. You can see my train status at https://ontrack-551821400291.us-central1.run.app/`;
@@ -20,7 +20,7 @@ const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUnt
       style={{ backgroundImage: `url(https://raw.githubusercontent.com/Anantesh-Mohapatra/OnTrack-Docker/c82ee99803b71e07ee4a7106b71c134452e1247e/public/assets/${trainData.LINECODE}.svg)`, backgroundPosition: 'calc(100% - 10px) calc(100% - 10px)', backgroundSize: '75px 75px', backgroundRepeat: 'no-repeat' }}
       onClick={() => copyToClipboard(trainData.TRAIN_ID)} // Updated to use correct train number variable
     >
-      <div className="header">
+      <div className="trainInfoHeader">
         <h2>To {lastStop?.STATIONNAME || 'N/A'}</h2>
       </div>
 
@@ -39,11 +39,11 @@ const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUnt
       )}
 
       {isTrainActive && (
-        <div className="statusPill" style={{ backgroundColor: 'rgba(160, 160, 160, 0.8)' }}>
-          <span className="statusText" style={{ textAlign: 'left' }}>
+        <div className="trainInfoStatusPill" style={{ backgroundColor: 'rgba(160, 160, 160, 0.8)' }}>
+          <span className="trainInfoStatusText" style={{ textAlign: 'left' }}>
             {getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME)}
           </span>
-          <span className="statusCircle" style={{ backgroundColor: getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME) === 'On Time' ? '#90EE90' : '#FF4500' }}></span>
+          <span className="trainInfoStatusCircle" style={{ backgroundColor: getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME) === 'On Time' ? '#90EE90' : '#FF4500' }}></span>
         </div>
       )}
 

@@ -1,0 +1,78 @@
+.trainCard:hover {
+  transform: scale(1.05); /* Scale up the button on hover */
+}
+
+.popularTrainsContainer {
+  margin-bottom: 20px;
+}
+
+.popularTrainsHeader {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.trainContainer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap; /* Allow wrapping for mobile devices */
+  max-width: 100%; /* Ensure container does not exceed screen width */
+}
+
+.trainCard {
+  width: 120px; /* Smaller width for compact display */
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  margin: 10px; /* Add margin for spacing between cards */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Ensure consistent placement of the pill */
+  transition: transform 0.2s; /* Add transition for hover effect */
+}
+
+.trainCardDisabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.stationText {
+  margin-top: 0px; /* Reduce top margin to move the text up */
+}
+
+.popularTrainsStatusPill {
+  display: inline-flex;
+  align-items: center;
+  width: auto; /* Ensure the pill width is auto */
+  padding: 2px 5px; /* Decrease the size of the pill */
+  border-radius: 15px;
+  margin-bottom: 5px;
+  background-color: rgba(160, 160, 160, 0.8); /* Ensure translucent */
+}
+
+.popularTrainsStatusText {
+  flex: 1; /* Ensure the text takes up the remaining space */
+  text-align: center; /* Center the text */
+  display: flex;
+  align-items: center; /* Vertically center the text */
+  justify-content: center; /* Center the text horizontally */
+  padding: 2px 0; /* Ensure vertical centering */
+  color: #FFFFFF; /* Always white color */
+}
+
+.popularTrainsStatusCircle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #FFFFFF; /* Always white border color */
+  margin-left: 5px; /* Move the circle to the right of the status */
+}
+
+.trainCardHover {
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); /* Add inner shadow on hover */
+}
+
+@media (max-width: 768px) {
+  .popularTrainsStatusText {
+    margin-top: 0px; /* Adjusted for mobile */
+  }
+}

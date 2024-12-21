@@ -1,17 +1,18 @@
 import React from 'react';
+import '../styles/TrainSchedule.css'; // New import for TrainSchedule styles
 
-const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStopStatus, styles }) => {
+const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStopStatus }) => {
   return (
     <div>
       <h2>Schedule</h2>
-      <table style={isTrainActive ? styles.table : styles.greyedTable}>
+      <table className={isTrainActive ? 'table' : 'greyedTable'}>
         <thead>
           <tr>
-            <th style={styles.header}>Station</th>
-            <th style={styles.header}>Arrival</th>
-            <th style={styles.header}>Departure</th>
-            <th style={styles.header}>Status</th>
-            <th style={styles.header} className="departedColumn">Departed</th>
+            <th className="header">Station</th>
+            <th className="header">Arrival</th>
+            <th className="header">Departure</th>
+            <th className="header">Status</th>
+            <th className="header departedColumn">Departed</th>
           </tr>
         </thead>
         <tbody>
@@ -33,18 +34,18 @@ const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStop
                   : '',
               }}
             >
-              <td style={styles.cell}>{stop.STATIONNAME || 'N/A'}</td>
-              <td style={styles.cell}>{formatTime(stop.TIME)}</td>
-              <td style={styles.cell}>{formatTime(stop.DEP_TIME)}</td>
+              <td className="cell">{stop.STATIONNAME || 'N/A'}</td>
+              <td className="cell">{formatTime(stop.TIME)}</td>
+              <td className="cell">{formatTime(stop.DEP_TIME)}</td>
               <td
+                className="cell"
                 style={{
-                  ...styles.cell,
                   color: getStopStatus(stop.TIME, stop.DEP_TIME) === 'On Time' ? 'green' : 'red',
                 }}
               >
                 {getStopStatus(stop.TIME, stop.DEP_TIME)}
               </td>
-              <td style={styles.cell} className="departedColumn">{stop.DEPARTED === 'YES' ? 'Yes' : 'No'}</td>
+              <td className="cell departedColumn">{stop.DEPARTED === 'YES' ? 'Yes' : 'No'}</td>
             </tr>
           ))}
         </tbody>

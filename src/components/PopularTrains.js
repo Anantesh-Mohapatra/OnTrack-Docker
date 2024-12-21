@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
-import './PopularTrains.css';
+import '../styles/PopularTrains.css'; // Updated import path
 
 const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
@@ -97,9 +97,9 @@ const PopularTrains = ({ onSelectTrain }) => {
   };
 
   return (
-    <div style={{ marginBottom: '20px' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Popular Trains</h2>
-      <div style={styles.trainContainer}>
+    <div className="popularTrainsContainer">
+      <h2 className="popularTrainsHeader">Popular Trains</h2>
+      <div className="trainContainer">
         {popularTrainNumbers.map((trainNumber, index) => {
           const train = trainsData[index];
           const isAvailable = train && train.TRAIN_ID;
@@ -133,10 +133,10 @@ const PopularTrains = ({ onSelectTrain }) => {
           const displayText = isAvailable
             ? (
               <>
-                <p style={styles.stationText}>To {targetStation}: {timeToStation}</p>
-                <div style={{ ...styles.statusPill, color: textColor, backgroundColor: pillBackgroundColor }}>
-                  <span style={styles.statusText}>{customStatus}</span>
-                  <span style={{ ...styles.statusCircle, borderColor: textColor, backgroundColor: circleColor }}></span>
+                <p className="stationText">To {targetStation}: {timeToStation}</p>
+                <div className="popularTrainsStatusPill" style={{ color: textColor, backgroundColor: pillBackgroundColor }}>
+                  <span className="popularTrainsStatusText">{customStatus}</span>
+                  <span className="popularTrainsStatusCircle" style={{ borderColor: textColor, backgroundColor: circleColor }}></span>
                 </div>
               </>
             )
@@ -146,16 +146,10 @@ const PopularTrains = ({ onSelectTrain }) => {
             <div
               key={trainNumber}
               onClick={() => isAvailable && onSelectTrain(trainNumber)}
-              className="trainCard" // Add class for hover effect
+              className={`trainCard ${isAvailable ? '' : 'trainCardDisabled'}`}
               style={{
-                ...styles.trainCard,
                 backgroundColor,
                 color: textColor,
-                cursor: isAvailable ? 'pointer' : 'not-allowed',
-                opacity: isAvailable ? 1 : 0.5,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between', // Ensure consistent placement of the pill
               }}
             >
               <h3>Train {trainNumber}</h3>
@@ -167,78 +161,5 @@ const PopularTrains = ({ onSelectTrain }) => {
     </div>
   );
 };
-
-// Add responsive styles
-const styles = {
-  trainContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    flexWrap: 'wrap', // Allow wrapping for mobile devices
-    maxWidth: '100%', // Ensure container does not exceed screen width
-  },
-  trainCard: {
-    width: '120px', // Smaller width for compact display
-    padding: '10px',
-    borderRadius: '5px',
-    textAlign: 'center',
-    margin: '10px', // Add margin for spacing between cards
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between', // Ensure consistent placement of the pill
-    transition: 'transform 0.2s', // Add transition for hover effect
-  },
-  stationText: {
-    marginTop: '0px', // Reduce top margin to move the text up
-  },
-  statusPill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '2px 5px', // Decrease the size of the pill
-    borderRadius: '15px',
-    marginBottom: '5px',
-    backgroundColor: 'rgba(160, 160, 160, 0.8)', // Ensure translucent
-  },
-  statusText: {
-    flex: 1, // Ensure the text takes up the remaining space
-    textAlign: 'center', // Center the text
-    display: 'flex',
-    alignItems: 'center', // Vertically center the text
-    justifyContent: 'center', // Center the text horizontally
-    padding: '2px 0', // Ensure vertical centering
-  },
-  statusCircle: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    border: '1px solid',
-    marginLeft: '5px', // Move the circle to the right of the status
-  },
-  trainCardHover: {
-    boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.5)', // Add inner shadow on hover
-  },
-};
-
-// Add media query for mobile devices
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @media (max-width: 768px) {
-    .statusText {
-      marginTop: '0px'; // Adjusted for mobile
-    }
-  }
-`, styleSheet.cssRules.length);
-
-// Add hover effect
-document.addEventListener('DOMContentLoaded', () => {
-  const trainCards = document.querySelectorAll('.trainCard');
-  trainCards.forEach(card => {
-    card.addEventListener('mouseover', () => {
-      card.style.transform = 'scale(1.05)';
-    });
-    card.addEventListener('mouseout', () => {
-      card.style.transform = 'scale(1)';
-    });
-  });
-});
 
 export default PopularTrains;

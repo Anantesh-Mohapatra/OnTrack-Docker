@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import TrainInfo from './TrainInfo';
 import TrainSchedule from './TrainSchedule';
-import './TrainStatus.css';
+import '../styles/TrainStatus.css'; // Updated import path
 
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
@@ -216,7 +216,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} style={styles.form}>
+      <form onSubmit={handleSubmit} className="form">
         <input
           type="text"
           placeholder="Enter Train Number"
@@ -224,17 +224,14 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          style={styles.input}
+          className="input"
         />
         <button
           type="submit"
-          style={{
-            ...styles.button,
-            ...(trainNumber ? {} : styles.buttonDisabled), // Apply disabled style if trainNumber is empty
-          }}
-          disabled={!trainNumber} // Disable button if trainNumber is empty
+          className={`button ${!trainNumber ? 'buttonDisabled' : ''}`}
+          disabled={!trainNumber}
         >
-          {loading ? <div style={styles.loadingCircle}></div> : 'Check Status'}
+          {loading ? <div className="loadingCircle"></div> : 'Check Status'}
         </button>
       </form>
       
@@ -255,7 +252,6 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             nextStop={nextStop}
             formatTime={formatTime}
             getStopStatus={getStopStatus}
-            styles={styles}
           />
         </div>
       )}
@@ -263,84 +259,4 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   );
 };
 
-// CSS styles for centering and table
-const styles = {
-  form: {
-    display: 'flex',
-    alignItems: 'center', // Changed to center to align loading circle
-    justifyContent: 'center',
-    marginBottom: '20px',
-  },
-  input: {
-    padding: '10px',
-    fontSize: '16px',
-    width: '200px',
-    marginRight: '10px',
-    boxSizing: 'border-box', // Include padding in the element's total width and height
-    height: '40px', // Ensure the input field matches the height of the button
-    borderRadius: '5px', // Rounded corners
-    border: '1px solid #ccc', // Light grey border
-    outline: 'none', // Remove default outline
-    transition: 'border-color 0.3s', // Smooth transition for border color
-  },
-  button: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '10px 20px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    boxSizing: 'border-box', // Include padding in the element's total width and height
-    minWidth: '140px', // Ensure the button does not resize
-    height: '40px', // Ensure the button height is fixed
-    borderRadius: '5px', // Rounded corners
-    border: 'none', // Remove default border
-    backgroundColor: '#4CAF50', // Green color
-    color: '#fff', // White text
-    transition: 'background-color 0.3s, transform 0.3s', // Smooth transition for background color and transform
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc', // Grey color for disabled button
-    cursor: 'not-allowed', // Change cursor to not-allowed
-  },
-  buttonHover: {
-    backgroundColor: '#e0702c', // Darker orange on hover
-    transform: 'scale(1.05)', // Slightly enlarge on hover
-  },
-  loadingCircle: {
-    border: '4px solid #f3f3f3', // Light grey
-    borderTop: '4px solid #f0803c', // Accent color 1
-    borderRight: '4px solid #b21b90', // Accent color 2
-    borderBottom: '4px solid #004f9b', // Accent color 3
-    borderRadius: '50%',
-    width: '20px',
-    height: '20px',
-    animation: 'spin 1s linear infinite',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '10px',
-  },
-  greyedTable: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '10px',
-    opacity: 0.5, // Lightly greyed-out table
-  },
-  header: {
-    border: '1px solid #ccc',
-    padding: '8px',
-  },
-  cell: {
-    border: '1px solid #ccc',
-    padding: '8px',
-  },
-};
-
-// Add keyframes for the loading circle animation
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }  }`, styleSheet.cssRules.length);styleSheet.insertRule(`  button:hover {    background-color: #e0702c; // Darker orange on hover    transform: scale(1.05); // Slightly enlarge on hover  }`, styleSheet.cssRules.length);export default TrainStatus;
+export default TrainStatus;

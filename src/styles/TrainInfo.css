@@ -1,7 +1,3 @@
-button:hover {
-  transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
 .pillContainer {
   border-radius: 25px;
   padding: 20px;
@@ -34,9 +30,11 @@ button:hover {
   opacity: 1;
 }
 
-.header {
+.trainInfoHeader {
   text-align: left;
   margin-bottom: 20px;
+  border: none; /* Remove border */
+  padding: 0; /* Remove padding */
 }
 
 .linePill {
@@ -67,35 +65,31 @@ button:hover {
   color: red;
 }
 
-.statusPill {
+.trainInfoStatusPill {
   display: inline-flex;
   align-items: center;
-  width: 100px;
+  width: 100px; /* Ensure the pill width is consistent */
+  height: 25.6px; /* Set the height to 25.6px */
   padding: 5px 10px; /* Increased size to match PopularTrains */
   border-radius: 15px;
   margin-bottom: 5px;
   background-color: rgba(160, 160, 160, 0.8);
 }
 
-.statusText {
+.trainInfoStatusText {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: flex-start; /* Align text to the left */
   padding: 2px 0;
   color: #FFFFFF; /* Always white color */
+  padding-right: 10px; /* Add 10px padding between the text and the circle */
 }
 
-.statusCircle {
+.trainInfoStatusCircle {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   border: 1px solid #FFFFFF; /* Always white border color */
   margin-left: 5px;
-}
-
-@media (max-width: 600px) {
-  .departedColumn {
-    display: none;
-  }
 }
