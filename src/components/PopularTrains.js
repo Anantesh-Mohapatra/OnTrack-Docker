@@ -4,7 +4,12 @@ import '../styles/PopularTrains.css'; // Updated import path
 
 const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
-  const popularTrainNumbers = useMemo(() => [3326, 3255, 3256, 3883], []); // Wrap in useMemo
+  const popularTrainNumbers = useMemo(() => {
+    const weekendTrainNumbers = [7826, 7867, 7232, 7273];
+    const weekdayTrainNumbers = [3326, 3255, 3256, 3883];
+    const today = new Date().getDay();
+    return (today === 0 || today === 6) ? weekendTrainNumbers : weekdayTrainNumbers;
+  }, []);
 
   // Fetch API key from external URL if undefined or null
   const fetchApiKey = async () => {
@@ -145,7 +150,11 @@ const PopularTrains = ({ onSelectTrain }) => {
           return (
             <div
               key={trainNumber}
-              onClick={() => isAvailable && onSelectTrain(trainNumber)}
+              onClick={() => {
+                if (isAvailable) {
+                  onSelectTrain(trainNumber);
+                }
+              }}
               className={`trainCard ${isAvailable ? '' : 'trainCardDisabled'}`}
               style={{
                 backgroundColor,
