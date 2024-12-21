@@ -7,23 +7,20 @@ import './App.css';
 const App = () => {
   const [selectedTrain, setSelectedTrain] = useState('');
   const [isHelpVisible, setIsHelpVisible] = useState(false); // State for HelpOverlay visibility
-  const [isDarkMode, setIsDarkMode] = useState(false); // State for dark mode
+  const [displayMode, setDisplayMode] = useState('light'); // State for display mode
 
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('isDarkMode');
-    if (savedDarkMode !== null) {
-      setIsDarkMode(savedDarkMode === 'true');
+    const savedDisplayMode = localStorage.getItem('displayMode');
+    if (savedDisplayMode !== null) {
+      setDisplayMode(savedDisplayMode);
     }
   }, []);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-    localStorage.setItem('isDarkMode', isDarkMode);
-  }, [isDarkMode]);
+    document.body.classList.remove('light', 'dark-mode', 'dark-analog');
+    document.body.classList.add(displayMode);
+    localStorage.setItem('displayMode', displayMode);
+  }, [displayMode]);
 
   // Handle train selection from PopularTrains
   const handleSelectTrain = (trainNumber) => {
@@ -35,13 +32,17 @@ const App = () => {
     setIsHelpVisible(!isHelpVisible);
   };
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+  // Toggle display mode
+  const toggleDisplayMode = () => {
+    setDisplayMode((prevMode) => {
+      if (prevMode === 'light') return 'dark-mode';
+      if (prevMode === 'dark-mode') return 'dark-analog';
+      return 'light';
+    });
   };
 
   return (
-    <div className={`container App ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`container App ${displayMode}`}>
       <div className="titleContainer">
         <div className="strip"></div>
         <h1 className="title">OnTrack</h1>
@@ -56,8 +57,8 @@ const App = () => {
       <HelpOverlay 
         isVisible={isHelpVisible} 
         onClose={toggleHelpOverlay} 
-        isDarkMode={isDarkMode} 
-        toggleDarkMode={toggleDarkMode} 
+        displayMode={displayMode} 
+        toggleDisplayMode={toggleDisplayMode} 
       />
       {!selectedTrain && <div className="helpButton" onClick={toggleHelpOverlay}>?</div>}
     </div>

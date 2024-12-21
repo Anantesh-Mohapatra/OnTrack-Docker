@@ -215,3 +215,52 @@ body.dark-mode .buttonDisabled {
   color: #f9f9f9; /* Light text */
   cursor: not-allowed; /* Change cursor to not-allowed */
 }
+
+/* Dark-analog mode styles */
+body.dark-analog .pillContainer {
+  background-color: #222; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .linePill {
+  background-color: #333; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .activeInfo {
+  color: #e0e0e0; /* Light grey color for active info */
+}
+
+body.dark-analog .inactiveInfo {
+  color: #ff6347; /* Light red color for inactive info */
+}
+
+body.dark-analog .statusPill {
+  background-color: #444; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .input {
+  background-color: #444; /* Dark background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .table {
+  background-color: #222; /* Dark background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .buttonDisabled {
+  background-color: #444; /* Grey color for disabled button */
+  color: #e0e0e0; /* Light grey text */
+  cursor: not-allowed; /* Change cursor to not-allowed */
+}
+
+body.dark-analog .button {
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}

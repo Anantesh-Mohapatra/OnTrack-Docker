@@ -1,9 +1,15 @@
 import React from 'react';
-import { FaMoon, FaSun } from 'react-icons/fa';
+import { FaMoon, FaSun, FaRegClock } from 'react-icons/fa'; // Import FaRegClock for dark-analog mode
 import '../styles/HelpOverlay.css';
 
-const HelpOverlay = ({ isVisible, onClose, isDarkMode, toggleDarkMode }) => {
+const HelpOverlay = ({ isVisible, onClose, displayMode, toggleDisplayMode }) => {
   if (!isVisible) return null;
+
+  const getIcon = () => {
+    if (displayMode === 'light') return <FaMoon />;
+    if (displayMode === 'dark-mode') return <FaRegClock />;
+    return <FaSun />;
+  };
 
   return (
     <div className="overlay">
@@ -17,8 +23,8 @@ const HelpOverlay = ({ isVisible, onClose, isDarkMode, toggleDarkMode }) => {
           <li>The API does serve data for Amtrak and SEPTA trains travelling to New Jersey. This data can be incomplete.</li>
         </ul>
         <button onClick={onClose} className="helpCloseButton">Close</button>
-        <button onClick={toggleDarkMode} className="darkModeToggle">
-          {isDarkMode ? <FaSun /> : <FaMoon />}
+        <button onClick={toggleDisplayMode} className="darkModeToggle">
+          {getIcon()}
         </button>
       </div>
     </div>

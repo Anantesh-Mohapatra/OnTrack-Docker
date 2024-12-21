@@ -119,3 +119,19 @@ body.dark-mode .App {
 body.dark-mode .title {
   color: #f9f9f9; /* Light text */
 }
+
+body.dark-analog {
+  background-color: #111; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .App {
+  background-color: #111; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+}
+
+body.dark-analog .title {
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}

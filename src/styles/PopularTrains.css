@@ -76,3 +76,20 @@
     margin-top: 0px; /* Adjusted for mobile */
   }
 }
+
+/* Dark-analog mode styles */
+body.dark-analog .trainCard {
+  background-color: #333; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .popularTrainsStatusPill {
+  background-color: #444; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .popularTrainsStatusText {
+  color: #e0e0e0; /* Light grey text */
+}

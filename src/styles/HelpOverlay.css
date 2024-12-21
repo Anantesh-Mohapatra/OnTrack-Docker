@@ -76,4 +76,27 @@ body.dark-mode .content {
   color: #fff;
 }
 
+/* Dark-analog mode styles */
+body.dark-analog .content {
+  background-color: #222; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+body.dark-analog .helpCloseButton {
+  background-color: #444; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .darkModeToggle {
+  background-color: #444; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
 /* Add other dark mode styles as needed */

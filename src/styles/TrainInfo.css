@@ -128,3 +128,40 @@ body.dark-mode .input {
   background-color: #555; /* Dark background */
   color: #f9f9f9; /* Light text */
 }
+
+/* Dark-analog mode styles */
+body.dark-analog .pillContainer {
+  background-color: #222; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .linePill {
+  background-color: #333; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .activeInfo {
+  color: #e0e0e0; /* Light grey color for active info */
+}
+
+body.dark-analog .inactiveInfo {
+  color: #ff6347; /* Light red color for inactive info */
+}
+
+body.dark-analog .trainInfoStatusPill {
+  background-color: #444; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .trainInfoStatusText {
+  color: #e0e0e0; /* Light grey text */
+}
+
+body.dark-analog .input {
+  background-color: #444; /* Dark background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}

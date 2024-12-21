@@ -88,3 +88,45 @@ body.dark-mode .onTime {
 body.dark-mode .delayed {
   color: #FF6347; /* Light red for delayed status */
 }
+
+/* Dark-analog mode styles */
+body.dark-analog .table {
+  background-color: #222; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .greyedTable {
+  background-color: #222; /* Darker background */
+  color: #a0a0a0; /* Light grey text */
+}
+
+body.dark-analog .header {
+  background-color: #333; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog .cell {
+  background-color: #333; /* Darker background */
+  color: #e0e0e0; /* Light grey text */
+  font-family: 'Courier New', Courier, monospace; /* Analog font */
+}
+
+body.dark-analog tr.nextStopHighlight td {
+  background-color: #5d6e37; /* More prominent shade of yellow for dark mode */
+  font-weight: bold; /* Bold text to emphasize */
+}
+
+body.dark-analog tr.departedRow td {
+  background-color: #2a2a2a; /* Lighten the grey for better readability */
+  color: #888888; /* Lighten the grey text for better readability */
+}
+
+body.dark-analog .onTime {
+  color: #90EE90; /* Light green for on time status */
+}
+
+body.dark-analog .delayed {
+  color: #FF6347; /* Light red for delayed status */
+}
