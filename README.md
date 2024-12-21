@@ -11,7 +11,7 @@ OnTrack also uses a complex machine learning, neural-network algorithm to determ
 0. Please install the prerequisites for the project.  
    1. **Node.js**  
    2. **npm**  
-1. Clone the repository to your local machine, using `git clone https://github.com/Anantesh-Mohapatra/OnTrack-Docker.git`.  
+1. Clone the repository to your local machine, using `git clone https://github.com/Anantesh-Mohapatra/OnTrack-Docker.git`
 2. Use `npm install` to install all necessary modules.  
 3. Create a .env file in the project folder and add your API key there (more information in the next section).  
    1. Your .env file should look like this: `REACT\_APP\_NJTRANSIT\_API\_KEY=your\_api\_key\_here`  
