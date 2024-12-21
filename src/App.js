@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TrainStatus from './components/TrainStatus';
 import PopularTrains from './components/PopularTrains';
 import HelpOverlay from './components/HelpOverlay'; // Import HelpOverlay component
-import 'react-responsive-carousel/lib/styles/carousel.min.css'; // Import carousel CSS
-import './App.css'; // Import CSS file
+import './App.css';
 
 const App = () => {
   const [selectedTrain, setSelectedTrain] = useState('');
   const [isHelpVisible, setIsHelpVisible] = useState(false); // State for HelpOverlay visibility
+  const [isDarkMode, setIsDarkMode] = useState(false); // State for dark mode
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('isDarkMode');
+    if (savedDarkMode !== null) {
+      setIsDarkMode(savedDarkMode === 'true');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+    localStorage.setItem('isDarkMode', isDarkMode);
+  }, [isDarkMode]);
 
   // Handle train selection from PopularTrains
   const handleSelectTrain = (trainNumber) => {
@@ -19,8 +35,13 @@ const App = () => {
     setIsHelpVisible(!isHelpVisible);
   };
 
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
-    <div className="container">
+    <div className={`container App ${isDarkMode ? 'dark' : ''}`}>
       <div className="titleContainer">
         <div className="strip"></div>
         <h1 className="title">OnTrack</h1>
@@ -32,7 +53,12 @@ const App = () => {
 
       {/* TrainStatus component */}
       <TrainStatus initialTrainNumber={selectedTrain} />
-      <HelpOverlay isVisible={isHelpVisible} onClose={toggleHelpOverlay} />
+      <HelpOverlay 
+        isVisible={isHelpVisible} 
+        onClose={toggleHelpOverlay} 
+        isDarkMode={isDarkMode} 
+        toggleDarkMode={toggleDarkMode} 
+      />
       {!selectedTrain && <div className="helpButton" onClick={toggleHelpOverlay}>?</div>}
     </div>
   );

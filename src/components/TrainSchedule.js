@@ -3,7 +3,7 @@ import '../styles/TrainSchedule.css'; // New import for TrainSchedule styles
 
 const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStopStatus }) => {
   return (
-    <div>
+    <div className="TrainSchedule">
       <h2>Schedule</h2>
       <table className={isTrainActive ? 'table' : 'greyedTable'}>
         <thead>
@@ -19,29 +19,21 @@ const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStop
           {trainData.STOPS.map((stop, index) => (
             <tr
               key={index}
-              style={{
-                backgroundColor: !isTrainActive
-                  ? '' // No additional styling if the train has concluded its journey
+              className={
+                !isTrainActive
+                  ? ''
                   : stop.STATIONNAME === nextStop?.STATIONNAME && isTrainActive
-                  ? '#FFFFCC' // Highlight next stop if active
+                  ? 'nextStopHighlight'
                   : stop.DEPARTED === 'YES'
-                  ? '#f0f0f0' // Slightly grey out if departed
-                  : '',
-                color: !isTrainActive
-                  ? '' // No additional styling if the train has concluded its journey
-                  : stop.DEPARTED === 'YES'
-                  ? '#a0a0a0' // Make text a tad greyer if departed
-                  : '',
-              }}
+                  ? 'departedRow'
+                  : ''
+              }
             >
               <td className="cell">{stop.STATIONNAME || 'N/A'}</td>
               <td className="cell">{formatTime(stop.TIME)}</td>
               <td className="cell">{formatTime(stop.DEP_TIME)}</td>
               <td
-                className="cell"
-                style={{
-                  color: getStopStatus(stop.TIME, stop.DEP_TIME) === 'On Time' ? 'green' : 'red',
-                }}
+                className={`cell ${getStopStatus(stop.TIME, stop.DEP_TIME) === 'On Time' ? 'onTime' : 'delayed'}`}
               >
                 {getStopStatus(stop.TIME, stop.DEP_TIME)}
               </td>

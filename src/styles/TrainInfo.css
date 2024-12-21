@@ -57,16 +57,18 @@
 
 .activeInfo {
   margin-bottom: 10px;
+  text-align: left; /* Align text to the left */
 }
 
 .inactiveInfo {
   margin-bottom: 10px;
   font-style: italic;
   color: red;
+  text-align: left; /* Align text to the left */
 }
 
 .trainInfoStatusPill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   width: 100px; /* Ensure the pill width is consistent */
   height: 25.6px; /* Set the height to 25.6px */
@@ -92,4 +94,37 @@
   border-radius: 50%;
   border: 1px solid #FFFFFF; /* Always white border color */
   margin-left: 5px;
+}
+
+/* Dark mode styles */
+body.dark-mode .pillContainer {
+  background-color: #333; /* Dark background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .linePill {
+  background-color: #444; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .activeInfo {
+  color: #FFFFFF; /* White color for active info */
+}
+
+body.dark-mode .inactiveInfo {
+  color: #f44336; /* Red color for inactive info */
+}
+
+body.dark-mode .trainInfoStatusPill {
+  background-color: #555; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .trainInfoStatusText {
+  color: #FFFFFF; /* Always white color */
+}
+
+body.dark-mode .input {
+  background-color: #555; /* Dark background */
+  color: #f9f9f9; /* Light text */
 }

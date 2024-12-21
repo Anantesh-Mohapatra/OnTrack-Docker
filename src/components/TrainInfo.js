@@ -10,15 +10,15 @@ const copyToClipboard = (trainNumber) => {
   });
 };
 
-// TrainInfo component displays information about a train
-const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUntilArrival, formatStatus, getStopStatus }) => {
+const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUntilArrival, getStopStatus }) => {
+  const trainInfoClass = 'TrainInfo';
   const isLeaving = nextStop && new Date() < new Date(trainData.STOPS[0]?.TIME);
 
   return (
     <div 
-      className="pillContainer" // Changed to use CSS class
+      className={`pillContainer ${trainInfoClass}`}
       style={{ backgroundImage: `url(https://raw.githubusercontent.com/Anantesh-Mohapatra/OnTrack-Docker/c82ee99803b71e07ee4a7106b71c134452e1247e/public/assets/${trainData.LINECODE}.svg)`, backgroundPosition: 'calc(100% - 10px) calc(100% - 10px)', backgroundSize: '75px 75px', backgroundRepeat: 'no-repeat' }}
-      onClick={() => copyToClipboard(trainData.TRAIN_ID)} // Updated to use correct train number variable
+      onClick={() => copyToClipboard(trainData.TRAIN_ID)}
     >
       <div className="trainInfoHeader">
         <h2>To {lastStop?.STATIONNAME || 'N/A'}</h2>

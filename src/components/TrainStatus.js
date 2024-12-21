@@ -14,6 +14,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [showTrainPrefix, setShowTrainPrefix] = useState(false); // State to manage the "Train" prefix
   const [isEditing, setIsEditing] = useState(false); // State to track if the input field is being edited
 
+  const trainStatusClass = 'TrainStatus';
+
   const fetchTrainStopList = useCallback(async (number) => { // Gets train information from API
     let token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get API token from .env file
 
@@ -215,7 +217,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   };
 
   return (
-    <div>
+    <div className={trainStatusClass}>
       <form onSubmit={handleSubmit} className="form">
         <input
           type="text"

@@ -40,6 +40,7 @@ button {
 
 .App {
   text-align: center;
+  color: #000; /* Default text color for light mode */
 }
 
 .App-logo {
@@ -95,6 +96,7 @@ button {
   font-style: italic;
   font-size: 2em;
   margin: 0 10px;
+  color: #000; /* Default text color for light mode */
 }
 
 .strip {
@@ -102,4 +104,18 @@ button {
   height: 15px;
   background: linear-gradient(45deg, #f0803d, #b31b90, #014c97);
   transform: skewX(-20deg);
+}
+
+body.dark-mode {
+  background-color: #000000; /* Match black background color */
+  color: #ffffff;
+}
+
+body.dark-mode .App {
+  background-color: #000000; /* Black background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .title {
+  color: #f9f9f9; /* Light text */
 }

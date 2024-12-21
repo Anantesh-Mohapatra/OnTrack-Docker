@@ -20,10 +20,71 @@
 .cell {
   border: 1px solid #ccc;
   padding: 8px;
+  text-align: left;
+}
+
+h2 {
+  text-align: left;
 }
 
 @media (max-width: 600px) {
   .departedColumn {
     display: none;
   }
+}
+
+.nextStopHighlight {
+  background-color: #FFFFCC; /* Highlight next stop if active */
+}
+
+.departedRow {
+  background-color: #f0f0f0; /* Slightly grey out if departed */
+  color: #a0a0a0; /* Make text a tad greyer if departed */
+}
+
+.onTime {
+  color: green; /* On time status */
+}
+
+.delayed {
+  color: red; /* Delayed status */
+}
+
+/* Dark mode styles */
+body.dark-mode .table {
+  background-color: #333; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .greyedTable {
+  background-color: #333; /* Darker background */
+  color: #a0a0a0; /* Light grey text */
+}
+
+body.dark-mode .header {
+  background-color: #444; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .cell {
+  background-color: #444; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode tr.nextStopHighlight td {
+  background-color: #5d6e37; /* More prominent shade of yellow for dark mode */
+  font-weight: bold; /* Bold text to emphasize */
+}
+
+body.dark-mode tr.departedRow td {
+  background-color: #2a2a2a; /* Lighten the grey for better readability */
+  color: #888888; /* Lighten the grey text for better readability */
+}
+
+body.dark-mode .onTime {
+  color: #90EE90; /* Light green for on time status */
+}
+
+body.dark-mode .delayed {
+  color: #FF6347; /* Light red for delayed status */
 }

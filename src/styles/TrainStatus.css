@@ -175,3 +175,43 @@ button:hover {
   background-color: #e0702c; /* Darker orange on hover */
   transform: scale(1.05); /* Slightly enlarge on hover */
 }
+
+/* Dark mode styles */
+body.dark-mode .pillContainer {
+  background-color: #333; /* Dark background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .linePill {
+  background-color: #444; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .activeInfo {
+  color: #FFFFFF; /* White color for active info */
+}
+
+body.dark-mode .inactiveInfo {
+  color: #f44336; /* Red color for inactive info */
+}
+
+body.dark-mode .statusPill {
+  background-color: #555; /* Darker background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .input {
+  background-color: #555; /* Dark background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .table {
+  background-color: #333; /* Dark background */
+  color: #f9f9f9; /* Light text */
+}
+
+body.dark-mode .buttonDisabled {
+  background-color: #333; /* Grey color for disabled button */
+  color: #f9f9f9; /* Light text */
+  cursor: not-allowed; /* Change cursor to not-allowed */
+}
