@@ -6,7 +6,7 @@ const PopularTrains = ({ onSelectTrain }) => {
   const [trainsData, setTrainsData] = useState([]);
   const popularTrainNumbers = useMemo(() => {
     const weekendTrainNumbers = [7826, 7867, 7232, 7273];
-    const weekdayTrainNumbers = [3326, 3255, 3706, 3275];
+    const weekdayTrainNumbers = [3706, 3275, 3720, 3243];
     const today = new Date().getDay();
     return (today === 0 || today === 6) ? weekendTrainNumbers : weekdayTrainNumbers;
   }, []);
