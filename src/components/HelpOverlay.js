@@ -19,6 +19,7 @@ const HelpOverlay = ({ isVisible, onClose, displayMode, toggleDisplayMode }) => 
         <h3>Please Note</h3>
         <ul className="list">
           <li>The API does not always show terminated trains as having departed from their last stop.</li>
+          <li>Arrival time is dynamic, showing the calculated ETA. Departure time is static, showing the original scheduled departure time.</li>
           <li>Trains significantly in the future (ex, 10 hours) may have incomplete stop data.</li>
           <li>The API does serve data for Amtrak and SEPTA trains travelling to New Jersey. This data can be incomplete.</li>
         </ul>
