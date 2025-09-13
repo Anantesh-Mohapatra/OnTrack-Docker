@@ -14,11 +14,16 @@ OnTrack also uses a complex machine learning, neural-network algorithm to determ
 1. Clone the repository to your local machine, using `git clone https://github.com/Anantesh-Mohapatra/OnTrack-Docker.git`
 2. Use `npm install` to install all necessary modules.  
 3. Create a .env file in the project folder and add your API key there (more information in the next section).  
-   1. Your .env file should look like this: `REACT_APP_NJTRANSIT_API_KEY=your_api_key_here`  
+   1. Backend now proxies NJ Transit API calls. Keep your key only in this .env; it is NOT exposed to the browser.  
+   2. Example .env:
+      - `REACT_APP_NJTRANSIT_API_KEY=your_api_key_here`
+   3. The frontend automatically prefers `http://localhost:5000` if available; otherwise it uses the deployed Cloud Run URL.
 4. Launch the site by running `npm start` in your terminal. The site should automatically open\!
 
 # API Information
 
-This project uses the free NJTransit API. API keys from NJTransit for this particular purpose can be generated up to 10 times a day, and each key can be used up to 40,000 times a day.  
+This project uses the free NJTransit API. The backend server exposes `/api/train-data?train=<number>` and securely calls NJ Transit with your API key so the key never reaches the frontend.  
+API keys from NJTransit for this particular purpose can be generated up to 10 times a day, and each key can be used up to 40,000 times a day.  
 To register for a key and read the API docs, please visit [NJTransit’s developer portal](https://developer.njtransit.com/registration/docs).  
 *Note: NJTransit requests that developers use the test environment first, and to refrain from developing in the production environment. More information about this can be found in the RailData API documentation.*
+

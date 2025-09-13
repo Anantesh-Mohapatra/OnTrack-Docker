@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getBackendBase } from '../utils/backend';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import '../styles/PopularTrains.css'; // Updated import path
 
@@ -11,17 +12,7 @@ const PopularTrains = ({ onSelectTrain }) => {
     return (today === 0 || today === 6) ? weekendTrainNumbers : weekdayTrainNumbers;
   }, []);
 
-  // Fetch API key from external URL if undefined or null
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
-      const data = await response.json();
-      return data.apiKey;
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      return null;
-    }
-  };
+  // API key is no longer requested client-side; backend proxies NJ Transit.
 
   // Fetch data for the popular trains
   useEffect(() => {
@@ -34,34 +25,14 @@ const PopularTrains = ({ onSelectTrain }) => {
   }, []);
 
   useEffect(() => {
-    const fetchTrainData = async (trainNumber) => { // Get train data from NJTransit API
-      let token = process.env.REACT_APP_NJTRANSIT_API_KEY;
-
-      if (!token) { // If token is not found in .env file
-        console.log('Local .env secret not found, using external URL');
-        token = await fetchApiKey(); // Fetch token from external URL
-        if (!token) { // If token is still not found
-          console.error('Token not found. Please check .env setup.');
-          return null;
-        }
-      }
-
-      const formData = new FormData();
-      formData.append('token', token);
-      formData.append('train', trainNumber);
-
+    const fetchTrainData = async (trainNumber) => { // Get train data via backend
       try {
-        const response = await fetch(
-          'https://raildata.njtransit.com/api/TrainData/getTrainStopList',
-          {
-            method: 'POST',
-            headers: {
-              'Accept': 'text/plain',
-            },
-            body: formData,
-          }
-        );
+        const base = await getBackendBase();
+        const url = `${base}/api/train-data?train=${encodeURIComponent(trainNumber)}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
         const data = await response.json();
+        if (data?.error) return null;
         return data;
       } catch (err) {
         console.error(`Error fetching train ${trainNumber}:`, err);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getBackendBase } from '../utils/backend';
 import TrainInfo from './TrainInfo';
 import TrainSchedule from './TrainSchedule';
 import '../styles/TrainStatus.css'; // Updated import path
@@ -16,58 +17,44 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   const trainStatusClass = 'TrainStatus';
 
-  const fetchTrainStopList = useCallback(async (number) => { // Gets train information from API
-    let token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get API token from .env file
-
-    if (!token) { // If token is not found in .env file
-      console.log('Local .env secret not found, using external URL');
-      token = await fetchApiKey(); // Fetch token from external URL
-      if (!token) { // If token is still not found
-        setError('Token not found. Please check .env setup.');
-        return;
-      }
-    }
-
+  const fetchTrainStopList = useCallback(async (number) => {
+    // Frontend now calls backend, which hides the API key and proxies the NJ Transit request.
     setLoading(true);
     setError('');
     setTrainData(null);
 
-    const formData = new FormData(); // Makes API request
-    formData.append('token', token);
-    formData.append('train', number);
-
-    const startTime = Date.now(); // Record the start time
+    const startTime = Date.now();
 
     try {
-      const response = await fetch(
-        'https://raildata.njtransit.com/api/TrainData/getTrainStopList',
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'text/plain',
-          },
-          body: formData,
-        }
-      );
+      const base = await getBackendBase();
+      const url = `${base}/api/train-data?train=${encodeURIComponent(number)}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch train data');
+      }
 
-      const data = await response.json(); // Waits for the API response and then converts it to json
-
-      if (data.errorMessage) { // Error handling
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      if (data.errorMessage) {
+        // Upstream API-specific message
         throw new Error(data.errorMessage);
-      } else if (!data || !data.TRAIN_ID) {
+      }
+      if (!data || !data.TRAIN_ID) {
         setError('No data found for this train. It may not be currently active.');
         return;
       }
 
       setTrainData(data);
-      determineStops(data); // After the data is acquired, this call determines the next and last stops
-      setShowTrainPrefix(true); // Show the "Train" prefix after successful data fetch
-      setIsEditing(false); // Reset editing state after successful data fetch
+      determineStops(data);
+      setShowTrainPrefix(true);
+      setIsEditing(false);
     } catch (err) {
       setError(err.message);
     } finally {
       const elapsedTime = Date.now() - startTime;
-      const minimumLoadingTime = 1000; // Minimum loading time in milliseconds (1 second)
+      const minimumLoadingTime = 1000;
       const remainingTime = minimumLoadingTime - elapsedTime;
 
       if (remainingTime > 0) {
@@ -85,16 +72,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     }
   }, [initialTrainNumber, fetchTrainStopList]);
 
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
-      const data = await response.json();
-      return data.apiKey;
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      return null;
-    }
-  };
+  // API key is no longer fetched in the browser. The backend now holds the key
+  // and proxies the request to NJ Transit. This function was intentionally removed.
 
   const handleSubmit = (e) => { // When the form is submitted, the entire page is prevented from reloading, and the train data is fetched
     e.preventDefault();
