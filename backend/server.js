@@ -20,6 +20,7 @@ app.post("/api/train-data", async (req, res) => {
   try {
     const formData = new FormData();
     formData.append("token", process.env.REACT_APP_NJTRANSIT_API_KEY);
+
     formData.append("train", trainNumber);
 
     const response = await fetch(

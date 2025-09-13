@@ -26,6 +26,7 @@ const PopularTrains = ({ onSelectTrain }) => {
       try {
         const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
         const response = await fetch(`${API_BASE}/api/train-data`, {
+
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
