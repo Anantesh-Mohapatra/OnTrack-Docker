@@ -26,7 +26,6 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     try {
       const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
       const response = await fetch(`${API_BASE}/api/train-data`, {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,10 +33,19 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
         body: JSON.stringify({ trainNumber: number }),
       });
 
-      const data = await response.json(); // Waits for the API response and then converts it to json
+      let data;
+      try {
+        data = await response.json(); // Waits for the API response and then converts it to json
+      } catch (jsonErr) {
+        throw new Error('Received invalid response from server. Is the backend running?');
+      }
 
-      if (data.errorMessage) { // Error handling
-        throw new Error(data.errorMessage);
+      if (!response.ok) {
+        throw new Error(data.errorMessage || data.message || 'Failed to fetch train data');
+      }
+
+      if (data.errorMessage || data.message) { // Error handling
+        throw new Error(data.errorMessage || data.message);
       } else if (!data || !data.TRAIN_ID) {
         setError('No data found for this train. It may not be currently active.');
         return;
