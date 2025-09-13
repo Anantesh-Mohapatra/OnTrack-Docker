@@ -3,6 +3,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const fetch = require("node-fetch");
+const FormData = require("form-data");
 
 const app = express();
 app.use(cors()); // Enable CORS for all routes
@@ -17,22 +19,26 @@ app.post("/api/train-data", async (req, res) => {
 
   try {
     const formData = new FormData();
-    formData.append("token", process.env.REACT_APP_NJTRANSIT_API_KEY); // API key is kept server-side
+    formData.append("token", process.env.REACT_APP_NJTRANSIT_API_KEY);
+
     formData.append("train", trainNumber);
 
     const response = await fetch(
       "https://raildata.njtransit.com/api/TrainData/getTrainStopList",
       {
         method: "POST",
-        headers: {
-          Accept: "text/plain",
-        },
         body: formData,
       }
     );
 
-    const data = await response.json();
-    res.json(data);
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      res.json(data);
+    } catch (parseErr) {
+      console.error("Invalid JSON from NJ Transit:", text);
+      res.status(500).json({ message: "Invalid response from NJ Transit" });
+    }
   } catch (err) {
     console.error("Error fetching train data:", err);
     res.status(500).json({ message: "Failed to fetch train data" });
