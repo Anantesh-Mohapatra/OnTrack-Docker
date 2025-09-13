@@ -16,39 +16,21 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   const trainStatusClass = 'TrainStatus';
 
-  const fetchTrainStopList = useCallback(async (number) => { // Gets train information from API
-    let token = process.env.REACT_APP_NJTRANSIT_API_KEY; // Get API token from .env file
-
-    if (!token) { // If token is not found in .env file
-      console.log('Local .env secret not found, using external URL');
-      token = await fetchApiKey(); // Fetch token from external URL
-      if (!token) { // If token is still not found
-        setError('Token not found. Please check .env setup.');
-        return;
-      }
-    }
-
+  const fetchTrainStopList = useCallback(async (number) => { // Gets train information from backend
     setLoading(true);
     setError('');
     setTrainData(null);
 
-    const formData = new FormData(); // Makes API request
-    formData.append('token', token);
-    formData.append('train', number);
-
     const startTime = Date.now(); // Record the start time
 
     try {
-      const response = await fetch(
-        'https://raildata.njtransit.com/api/TrainData/getTrainStopList',
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'text/plain',
-          },
-          body: formData,
-        }
-      );
+      const response = await fetch('/api/train-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ trainNumber: number }),
+      });
 
       const data = await response.json(); // Waits for the API response and then converts it to json
 
@@ -85,21 +67,9 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     }
   }, [initialTrainNumber, fetchTrainStopList]);
 
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
-      const data = await response.json();
-      return data.apiKey;
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      return null;
-    }
-  };
-
   const handleSubmit = (e) => { // When the form is submitted, the entire page is prevented from reloading, and the train data is fetched
     e.preventDefault();
     if (!trainNumber) return; // Prevent submission if trainNumber is empty
-    console.log('REACT_APP_TEST:', process.env.REACT_APP_TEST);
     fetchTrainStopList(trainNumber);
   };
 
