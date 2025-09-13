@@ -49,7 +49,7 @@ const App = () => {
         <div className="strip"></div>
       </div>
       
-      {/* Add the PopularTrains component */}
+      {/* PopularTrains component */}
       <PopularTrains onSelectTrain={handleSelectTrain} />
 
       {/* TrainStatus component */}

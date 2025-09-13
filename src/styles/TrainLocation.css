@@ -1,0 +1,74 @@
+.TrainLocation {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box; /* Prevent spill due to padding */
+  margin-top: 20px; /* Match spacing between other modules */
+}
+
+.TrainLocation .mapWrapper {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.TrainLocation .mapContainer {
+  width: 100%;
+  height: 280px; /* Sensible default height */
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.TrainLocation .mapDisclaimer {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  text-align: left;
+}
+
+/* Custom NJ Transit themed circle train icon */
+.leaflet-div-icon.njtTrainIcon {
+  background: transparent;
+  border: none;
+}
+
+.njt-train-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  background: rgba(120, 120, 120, 0.7); /* simple translucent grey interior */
+}
+
+.njt-train-circle .fa-train {
+  font-size: 16px;
+  line-height: 1;
+  color: #040404; /* always black */
+}
+
+/* Dark mode */
+body.dark-mode .TrainLocation {
+  background-color: #333;
+  color: #f9f9f9;
+}
+
+/* removed theme-based overrides; icon remains white */
+
+body.dark-mode .TrainLocation .mapDisclaimer {
+  color: #aaa;
+}
+
+/* Dark-analog mode */
+body.dark-analog .TrainLocation {
+  background-color: #222;
+  color: #e0e0e0;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+body.dark-analog .TrainLocation .mapDisclaimer {
+  color: #bdbdbd;
+}

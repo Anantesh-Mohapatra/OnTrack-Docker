@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getBackendBase } from '../utils/backend';
 import TrainInfo from './TrainInfo';
 import TrainSchedule from './TrainSchedule';
 import '../styles/TrainStatus.css'; // Updated import path
+import TrainLocation from './TrainLocation';
 
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
@@ -17,13 +18,23 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
   const trainStatusClass = 'TrainStatus';
 
+  const lastRequestRef = useRef({ train: null, ts: 0 });
+
   const fetchTrainStopList = useCallback(async (number) => {
     // Frontend now calls backend, which hides the API key and proxies the NJ Transit request.
+    // De-dup frequent identical requests (helps with React.StrictMode double effects in dev)
+    const now = Date.now();
+    if (number === lastRequestRef.current.train && now - lastRequestRef.current.ts < 2000) {
+      console.debug('Skipping duplicate fetch for train', number);
+      return;
+    }
+    lastRequestRef.current = { train: number, ts: now };
+
     setLoading(true);
     setError('');
     setTrainData(null);
 
-    const startTime = Date.now();
+    const startTime = now;
 
     try {
       const base = await getBackendBase();
@@ -195,6 +206,63 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return `${hours}:${minutes}:${seconds} ${ampm}`; // Returns a string with the formatted time
   };
 
+  // Derive coordinates from trainData and log changes clearly without spamming
+  const coords = useMemo(() => {
+    if (!trainData) return { has: false, lat: null, lon: null, source: null };
+
+    // 1) Try common top-level fields first
+    const pickFirst = (arr) => arr.find((v) => v !== undefined && v !== null && v !== '');
+    const tlLat = pickFirst([
+      trainData?.LAT,
+      trainData?.LATITUDE,
+      trainData?.GPS_LAT,
+      trainData?.GPSLAT,
+      trainData?.Latitude,
+    ]);
+    const tlLon = pickFirst([
+      trainData?.LON,
+      trainData?.LONGITUDE,
+      trainData?.GPS_LON,
+      trainData?.GPSLON,
+      trainData?.Longitude,
+      trainData?.LNG,
+    ]);
+    let latNum = typeof tlLat === 'string' ? parseFloat(tlLat) : tlLat;
+    let lonNum = typeof tlLon === 'string' ? parseFloat(tlLon) : tlLon;
+    if (Number.isFinite(latNum) && Number.isFinite(lonNum)) {
+      return { has: true, lat: latNum, lon: lonNum, source: 'top-level' };
+    }
+
+    // 2) Fallback: look for coordinates inside CAPACITY[] entries
+    const cap = Array.isArray(trainData?.CAPACITY) ? trainData.CAPACITY : [];
+    for (let i = 0; i < cap.length; i++) {
+      const c = cap[i] || {};
+      const cLat = pickFirst([c.LAT, c.LATITUDE, c.GPS_LAT, c.GPSLAT, c.Latitude]);
+      const cLon = pickFirst([c.LON, c.LONGITUDE, c.GPS_LON, c.GPSLON, c.Longitude, c.LNG]);
+      latNum = typeof cLat === 'string' ? parseFloat(cLat) : cLat;
+      lonNum = typeof cLon === 'string' ? parseFloat(cLon) : cLon;
+      if (Number.isFinite(latNum) && Number.isFinite(lonNum)) {
+        return { has: true, lat: latNum, lon: lonNum, source: `capacity[${i}]` };
+      }
+    }
+
+    return { has: false, lat: null, lon: null, source: null };
+  }, [trainData]);
+
+  const prevCoordsRef = useRef({ has: false, lat: null, lon: null });
+  useEffect(() => {
+    const prev = prevCoordsRef.current;
+    if (coords.has && (!prev.has || prev.lat !== coords.lat || prev.lon !== coords.lon)) {
+      console.info('TrainLocation: showing map at', { lat: coords.lat, lon: coords.lon, source: coords.source });
+    } else if (!coords.has && prev.has) {
+      console.info('TrainLocation: location data no longer available; hiding map');
+    } else if (!coords.has && !prev.has && trainData) {
+      // Log once when we have trainData but no coords
+      console.info('TrainLocation: no coordinates in train data; map hidden');
+    }
+    prevCoordsRef.current = coords;
+  }, [coords, trainData]);
+
   return (
     <div className={trainStatusClass}>
       <form onSubmit={handleSubmit} className="form">
@@ -234,6 +302,9 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             formatTime={formatTime}
             getStopStatus={getStopStatus}
           />
+          {coords.has && (
+            <TrainLocation lat={coords.lat} lon={coords.lon} trainName={`Train ${trainData.TRAIN_ID}`} />
+          )}
         </div>
       )}
     </div>
