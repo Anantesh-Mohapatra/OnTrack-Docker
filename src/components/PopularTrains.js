@@ -11,18 +11,6 @@ const PopularTrains = ({ onSelectTrain }) => {
     return (today === 0 || today === 6) ? weekendTrainNumbers : weekdayTrainNumbers;
   }, []);
 
-  // Fetch API key from external URL if undefined or null
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch('https://ontrack-docker-551821400291.us-central1.run.app/api/key');
-      const data = await response.json();
-      return data.apiKey;
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      return null;
-    }
-  };
-
   // Fetch data for the popular trains
   useEffect(() => {
     const handleResize = () => {
@@ -34,34 +22,16 @@ const PopularTrains = ({ onSelectTrain }) => {
   }, []);
 
   useEffect(() => {
-    const fetchTrainData = async (trainNumber) => { // Get train data from NJTransit API
-      let token = process.env.REACT_APP_NJTRANSIT_API_KEY;
-
-      if (!token) { // If token is not found in .env file
-        console.log('Local .env secret not found, using external URL');
-        token = await fetchApiKey(); // Fetch token from external URL
-        if (!token) { // If token is still not found
-          console.error('Token not found. Please check .env setup.');
-          return null;
-        }
-      }
-
-      const formData = new FormData();
-      formData.append('token', token);
-      formData.append('train', trainNumber);
-
+    const fetchTrainData = async (trainNumber) => { // Get train data from backend endpoint
       try {
-        const response = await fetch(
-          'https://raildata.njtransit.com/api/TrainData/getTrainStopList',
-          {
-            method: 'POST',
-            headers: {
-              'Accept': 'text/plain',
-            },
-            body: formData,
-          }
-        );
-        const data = await response.json();
+        const response = await fetch('/api/train-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ trainNumber }),
+        });
+        const data = await response.json(); // Waits for the API response and then converts it to json
         return data;
       } catch (err) {
         console.error(`Error fetching train ${trainNumber}:`, err);
