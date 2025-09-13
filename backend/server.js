@@ -4,7 +4,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const fetch = require("node-fetch");
-const FormData = require("form-data");
+const { URLSearchParams } = require("url");
 
 const app = express();
 app.use(cors()); // Enable CORS for all routes
@@ -14,34 +14,56 @@ app.post("/api/train-data", async (req, res) => {
   // Proxies requests to the NJ Transit API so the token isn't exposed to clients
   const { trainNumber } = req.body;
   if (!trainNumber) {
-    return res.status(400).json({ message: "trainNumber is required" });
+    return res.status(400).json({ errorMessage: "trainNumber is required" });
   }
 
   try {
-    const formData = new FormData();
-    formData.append("token", process.env.REACT_APP_NJTRANSIT_API_KEY);
+    const token = process.env.REACT_APP_NJTRANSIT_API_KEY;
+    if (!token) {
+      console.error("NJ Transit API key is not configured");
+      return res
+        .status(500)
+        .json({ errorMessage: "NJ Transit API key is not configured" });
+    }
 
-    formData.append("train", trainNumber);
+    const params = new URLSearchParams();
+    params.append("token", token);
+    params.append("train", trainNumber);
 
     const response = await fetch(
       "https://raildata.njtransit.com/api/TrainData/getTrainStopList",
       {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: params,
       }
     );
 
-    const text = await response.text();
-    try {
-      const data = JSON.parse(text);
-      res.json(data);
-    } catch (parseErr) {
-      console.error("Invalid JSON from NJ Transit:", text);
-      res.status(500).json({ message: "Invalid response from NJ Transit" });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response from NJ Transit:", errorText);
+      return res
+        .status(500)
+        .json({ errorMessage: "Failed to fetch train data" });
     }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const errorText = await response.text();
+      console.error("Invalid JSON from NJ Transit:", errorText);
+      return res
+        .status(500)
+        .json({ errorMessage: "Invalid response from NJ Transit" });
+    }
+
+    const data = await response.json();
+    res.json(data);
   } catch (err) {
     console.error("Error fetching train data:", err);
-    res.status(500).json({ message: "Failed to fetch train data" });
+    res.status(500).json({ errorMessage: "Failed to fetch train data" });
   }
 });
 
