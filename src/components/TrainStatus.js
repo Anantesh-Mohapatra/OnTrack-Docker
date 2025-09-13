@@ -24,7 +24,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     const startTime = Date.now(); // Record the start time
 
     try {
-      const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
+      // Default to local backend if REACT_APP_BACKEND_URL is not set
+      const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
       const response = await fetch(`${API_BASE}/api/train-data`, {
         method: 'POST',
         headers: {

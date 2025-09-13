@@ -12,10 +12,17 @@ OnTrack also uses a complex machine learning, neural-network algorithm to determ
    1. **Node.js**  
    2. **npm**  
 1. Clone the repository to your local machine, using `git clone https://github.com/Anantesh-Mohapatra/OnTrack-Docker.git`
-2. Use `npm install` to install all necessary modules.  
-3. Create a .env file in the project folder and add your API key there (more information in the next section).  
-   1. Your .env file should look like this: `REACT_APP_NJTRANSIT_API_KEY=your_api_key_here`  
-4. Launch the site by running `npm start` in your terminal. The site should automatically open\!
+2. Use `npm install` to install all necessary modules.
+3. Start the backend server in a separate terminal with `node backend/server.js`. It listens on port 5000 by default.
+   * Visiting `http://localhost:5000/` will show `Cannot GET /`; this is expected since the server only exposes API routes like `/api/train-data`.
+4. Create a .env file in the project folder and add your API key. Set `REACT_APP_BACKEND_URL` only if your backend isn't running on `http://localhost:5000`.
+   1. Example `.env` file:
+
+      ```
+      REACT_APP_NJTRANSIT_API_KEY=your_api_key_here
+      REACT_APP_BACKEND_URL=https://your-cloud-run-url  # Defaults to http://localhost:5000 if omitted
+      ```
+5. Launch the site by running `npm start` in your terminal. The site should automatically open\!
 
 # API Information
 
