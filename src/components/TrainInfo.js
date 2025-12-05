@@ -10,9 +10,18 @@ const copyToClipboard = (trainNumber) => {
   });
 };
 
-const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUntilArrival, getStopStatus }) => {
+const TrainInfo = ({
+  trainData,
+  isTrainActive,
+  nextStop,
+  lastStop,
+  allStopsCancelled,
+  getMinutesUntilArrival,
+  getStopStatus,
+}) => {
   const trainInfoClass = 'TrainInfo';
   const isLeaving = nextStop && new Date() < new Date(trainData.STOPS[0]?.TIME);
+  const statusText = allStopsCancelled ? 'Cancelled' : getStopStatus(nextStop);
 
   return (
     <div 
@@ -41,9 +50,12 @@ const TrainInfo = ({ trainData, isTrainActive, nextStop, lastStop, getMinutesUnt
       {isTrainActive && (
         <div className="trainInfoStatusPill" style={{ backgroundColor: 'rgba(160, 160, 160, 0.8)' }}>
           <span className="trainInfoStatusText" style={{ textAlign: 'left' }}>
-            {getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME)}
+            {statusText}
           </span>
-          <span className="trainInfoStatusCircle" style={{ backgroundColor: getStopStatus(nextStop?.TIME, nextStop?.DEP_TIME) === 'On Time' ? '#90EE90' : '#FF4500' }}></span>
+          <span
+            className="trainInfoStatusCircle"
+            style={{ backgroundColor: statusText === 'On Time' ? '#90EE90' : '#FF4500' }}
+          ></span>
         </div>
       )}
 

@@ -60,10 +60,8 @@ const TrainSchedule = ({ trainData, isTrainActive, nextStop, formatTime, getStop
               </td>
               <td className="cell">{formatTime(stop.TIME)}</td>
               <td className="cell">{formatTime(stop.DEP_TIME)}</td>
-              <td
-                className={`cell ${getStopStatus(stop.TIME, stop.DEP_TIME) === 'On Time' ? 'onTime' : 'delayed'}`}
-              >
-                {getStopStatus(stop.TIME, stop.DEP_TIME)}
+              <td className={`cell ${getStopStatus(stop) === 'On Time' ? 'onTime' : 'delayed'}`}>
+                {getStopStatus(stop)}
               </td>
               <td className="cell departedColumn">{stop.DEPARTED === 'YES' ? 'Yes' : 'No'}</td>
             </tr>

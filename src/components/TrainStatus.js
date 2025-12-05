@@ -156,13 +156,29 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     setNextStop(null);
   };
 
+  const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
+
+  const isStopCancelled = (stop) => {
+    // The API only exposes cancellations via stop_status; we surface it so the UI never labels a cancelled stop as "On Time"/"Late".
+    // NJ Transit has returned both "CANCELED" and "CANCELLED" (one- or two-L variants), so we normalize and accept either spelling.
+    const statusFlag = stop?.stop_status || stop?.STOP_STATUS || stop?.StopStatus;
+    if (typeof statusFlag !== 'string') return false;
+
+    const normalized = statusFlag.trim().toLowerCase();
+    return CANCELLED_STATUSES.has(normalized);
+  };
+
   // Calculate custom status for each stop based on arrival and departure times
   // While the NJ Transit API also provided stop status, this is only updated after the train *leaves* the specific station
   // The custom status allows us to find the status before the train leaves that station
   // The API does not update the departure time - this remains as originally scheduled
   // But the API does update arrival time based on real-time data
   // As a result, it is possible to see if the train is delayed by comparing these two times
-  const getStopStatus = (arrivalTime, departureTime) => {
+  const getStopStatus = (stop) => {
+    if (!stop) return 'N/A';
+    if (isStopCancelled(stop)) return 'Cancelled';
+
+    const { TIME: arrivalTime, DEP_TIME: departureTime } = stop;
     if (!arrivalTime || !departureTime) return 'N/A'; // Handles missing/incomplete data
 
     const arrival = new Date(Date.parse(arrivalTime)); // Reformats arrival time
@@ -173,6 +189,11 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return arrival > departure ? 'Late' : 'On Time';
     // If arrival time is later than departure time, then it's late. Otherwise, it's on time.
   };
+
+  const allStopsCancelled = useMemo(() => {
+    if (!Array.isArray(trainData?.STOPS) || trainData.STOPS.length === 0) return false;
+    return trainData.STOPS.every(isStopCancelled);
+  }, [trainData]);
 
   // Calculate the minutes until the next stop's arrival
   const getMinutesUntilArrival = (time) => {
@@ -292,6 +313,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             isTrainActive={isTrainActive}
             nextStop={nextStop}
             lastStop={lastStop}
+            allStopsCancelled={allStopsCancelled}
             getMinutesUntilArrival={getMinutesUntilArrival}
             getStopStatus={getStopStatus}
           />
