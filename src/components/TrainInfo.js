@@ -43,7 +43,9 @@ const TrainInfo = ({
         </div>
       ) : (
         <div className="inactiveInfo">
-          This train has concluded its journey at {lastStop?.STATIONNAME || 'N/A'}.
+          {allStopsCancelled
+            ? 'This train has been cancelled.'
+            : `This train has concluded its journey at ${lastStop?.STATIONNAME || 'N/A'}.`}
         </div>
       )}
 

@@ -58,7 +58,6 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       }
 
       setTrainData(data);
-      determineStops(data);
       setShowTrainPrefix(true);
       setIsEditing(false);
     } catch (err) {
@@ -110,8 +109,25 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     setIsEditing(true); // Set editing state to true when user is typing
   };
 
+  const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
+
+  const isStopCancelled = (stop) => {
+    // The API only exposes cancellations via stop_status; we surface it so the UI never labels a cancelled stop as "On Time"/"Late".
+    // NJ Transit has returned both "CANCELED" and "CANCELLED" (one- or two-L variants), so we normalize and accept either spelling.
+    const statusFlag = stop?.stop_status || stop?.STOP_STATUS || stop?.StopStatus;
+    if (typeof statusFlag !== 'string') return false;
+
+    const normalized = statusFlag.trim().toLowerCase();
+    return CANCELLED_STATUSES.has(normalized);
+  };
+
+  const allStopsCancelled = useMemo(() => {
+    if (!Array.isArray(trainData?.STOPS) || trainData.STOPS.length === 0) return false;
+    return trainData.STOPS.every(isStopCancelled);
+  }, [trainData]);
+
   // Determine the next stop and last stop
-  const determineStops = (data) => {
+  const determineStops = useCallback((data) => {
     if (!data || !data.STOPS) return;  // Exits if there's incomplete or missing data
 
     const stops = data.STOPS; // Gets the list of stops
@@ -120,10 +136,18 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     // Set the last stop to the final stop in the list
     setLastStop(stops[lastStopIndex]);
 
+    if (allStopsCancelled) {
+      // Even if departure timestamps are missing or stale, a fully cancelled stop list means the train is no longer running.
+      // We flip the activity flag here so downstream UI never shows a cancelled train as "active" or "on time".
+      setIsTrainActive(false);
+      setNextStop(null);
+      return;
+    }
+
     // Because of how the NJTransit API works, finding the next stop is a little complicated
     // The API usually doesn't mark the first stop as departed
     // This finds 1) if the train is currently active, and 2) what the next stop is
-    
+
     // 1. Check if all stops are "NO" for departed
     // This is the case where the train has not left its first stop yet. It is currently active.
     const allNoDeparted = stops.every((stop) => stop.DEPARTED === 'NO');
@@ -133,7 +157,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       return;
     }
 
-    // 2. Check if the last stop has "YES" for departed 
+    // 2. Check if the last stop has "YES" for departed
     // This is the case where the train has reached all its destinations, and has concluded its journey. It is inactive.
     if (stops[lastStopIndex].DEPARTED === 'YES') {
       setIsTrainActive(false); // Train is inactive
@@ -154,19 +178,14 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     // Default case: active train with no next stop
     setIsTrainActive(true);
     setNextStop(null);
-  };
+  }, [allStopsCancelled]);
 
-  const CANCELLED_STATUSES = new Set(['cancelled', 'canceled']);
+  // Keep activity/next-stop state in sync any time new train data arrives or a cancellation status flips.
+  useEffect(() => {
+    if (!trainData) return;
 
-  const isStopCancelled = (stop) => {
-    // The API only exposes cancellations via stop_status; we surface it so the UI never labels a cancelled stop as "On Time"/"Late".
-    // NJ Transit has returned both "CANCELED" and "CANCELLED" (one- or two-L variants), so we normalize and accept either spelling.
-    const statusFlag = stop?.stop_status || stop?.STOP_STATUS || stop?.StopStatus;
-    if (typeof statusFlag !== 'string') return false;
-
-    const normalized = statusFlag.trim().toLowerCase();
-    return CANCELLED_STATUSES.has(normalized);
-  };
+    determineStops(trainData);
+  }, [determineStops, trainData]);
 
   // Calculate custom status for each stop based on arrival and departure times
   // While the NJ Transit API also provided stop status, this is only updated after the train *leaves* the specific station
@@ -189,11 +208,6 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return arrival > departure ? 'Late' : 'On Time';
     // If arrival time is later than departure time, then it's late. Otherwise, it's on time.
   };
-
-  const allStopsCancelled = useMemo(() => {
-    if (!Array.isArray(trainData?.STOPS) || trainData.STOPS.length === 0) return false;
-    return trainData.STOPS.every(isStopCancelled);
-  }, [trainData]);
 
   // Calculate the minutes until the next stop's arrival
   const getMinutesUntilArrival = (time) => {
