@@ -70,7 +70,7 @@
 .trainInfoStatusPill {
   display: flex;
   align-items: center;
-  width: 100px; /* Ensure the pill width is consistent */
+  width: 120px; /* Ensure the pill width is consistent */
   height: 25.6px; /* Set the height to 25.6px */
   padding: 5px 10px; /* Increased size to match PopularTrains */
   border-radius: 15px;
