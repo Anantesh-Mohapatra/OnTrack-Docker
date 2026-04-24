@@ -10,6 +10,7 @@ if (!process.env.REACT_APP_NJTRANSIT_API_KEY) {
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const gtfs = require("./gtfs");
 
 const app = express();
 app.use(cors()); // Enable CORS for all routes
@@ -18,8 +19,69 @@ app.use(express.json());
 
 // Simple health endpoint
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, gtfs: gtfs.status() });
 });
+
+// 5-minute TTL cache for getVehicleData. The vehicle list is identical for
+// every user and only changes on the order of minutes, so a short server-side
+// cache protects the NJ Transit API key quota without affecting UX.
+const vehicleCache = { data: null, expiresAt: 0 };
+const VEHICLE_TTL_MS = 5 * 60 * 1000;
+
+app.get("/api/vehicle-data", async (_req, res) => {
+  const now = Date.now();
+  if (vehicleCache.data && vehicleCache.expiresAt > now) {
+    return res.json(vehicleCache.data);
+  }
+  const token = process.env.REACT_APP_NJTRANSIT_API_KEY;
+  if (!token) return res.status(500).json({ error: "Server is missing NJ Transit API key" });
+  try {
+    const upstream = await axios.post(
+      "https://raildata.njtransit.com/api/TrainData/getVehicleData",
+      new URLSearchParams({ token }).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 10000 }
+    );
+    let payload = upstream.data;
+    if (typeof payload === "string") {
+      try { payload = JSON.parse(payload); } catch (_) {}
+    }
+    vehicleCache.data = payload;
+    vehicleCache.expiresAt = now + VEHICLE_TTL_MS;
+    return res.json(payload);
+  } catch (err) {
+    console.error("/api/vehicle-data error:", err?.message || err);
+    return res.status(502).json({ error: "Failed to fetch vehicle data" });
+  }
+});
+
+// GTFS-backed scheduled stops for one train on a given date. Used only by
+// PopularTrains to populate the customization dropdown — especially for
+// inactive trains where the realtime getTrainStopList returns nothing.
+// Query: ?train=3725&date=20260422  (date defaults to today, America/New_York)
+app.get("/api/scheduled-stops", (req, res) => {
+  const train = (req.query.train || "").toString().trim();
+  if (!train) return res.status(400).json({ error: "Missing required query param: train" });
+  // Distinguish "GTFS hasn't loaded yet" (transient server problem → 503)
+  // from "train is genuinely not in today's schedule" (404). Frontend uses
+  // the status code to pick an appropriate message.
+  if (!gtfs.isReady()) {
+    return res.status(503).json({ error: "Schedule data is not yet loaded" });
+  }
+  const date = (req.query.date || "").toString().trim() || todayYYYYMMDD();
+  const result = gtfs.getScheduledStops(train, date);
+  if (!result) return res.status(404).json({ error: "Train not scheduled on that date" });
+  return res.json(result);
+});
+
+function todayYYYYMMDD() {
+  // Use America/New_York so the date matches NJT's service calendar even if
+  // the backend runs in a different timezone.
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  return fmt.format(new Date()).replace(/-/g, "");
+}
 
 // Server-side proxy for NJ Transit Train Stop List
 // Hides the API key from the frontend and prevents direct browser calls.
@@ -75,4 +137,5 @@ app.get("/api/train-data", async (req, res) => {
 const PORT = process.env.PORT || 5000; // Default to 5000 if PORT is not set
 app.listen(PORT, () => {
   console.log(`Backend server is running on port ${PORT}`);
+  gtfs.startRefreshLoop();
 });

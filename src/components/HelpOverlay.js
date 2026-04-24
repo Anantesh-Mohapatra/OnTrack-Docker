@@ -22,6 +22,7 @@ const HelpOverlay = ({ isVisible, onClose, displayMode, toggleDisplayMode }) => 
           <li>Arrival time is dynamic, showing the calculated ETA. Departure time is static, showing the original scheduled departure time.</li>
           <li>Trains significantly in the future (ex, 10 hours) may have incomplete stop data.</li>
           <li>The API does serve data for Amtrak and SEPTA trains travelling to New Jersey. This data can be incomplete.</li>
+          <li>Port Jervis Line trains are jointly operated with Metro-North and aren't in NJTransit's schedule data. To customize a Popular Trains slot with a Port Jervis train, the train must currently be running.</li>
         </ul>
         <button onClick={onClose} className="helpCloseButton">Close</button>
         <button onClick={toggleDisplayMode} className="darkModeToggle">

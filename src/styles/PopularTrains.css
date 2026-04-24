@@ -19,6 +19,7 @@
 }
 
 .trainCard {
+  position: relative; /* anchor the edit button */
   width: 120px; /* Smaller width for compact display */
   padding: 10px;
   border-radius: 5px;
@@ -28,6 +29,11 @@
   flex-direction: column;
   justify-content: space-between; /* Ensure consistent placement of the pill */
   transition: transform 0.2s; /* Add transition for hover effect */
+  /* Suppress the default iOS long-press callout + text-selection so the
+     long-press-to-edit gesture doesn't trigger the OS text selector. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .trainCardDisabled {
@@ -37,6 +43,13 @@
 
 .stationText {
   margin-top: 0px; /* Reduce top margin to move the text up */
+}
+
+.stopMismatch {
+  margin: 2px 0 6px;
+  font-size: 11px;
+  opacity: 0.85;
+  font-style: italic;
 }
 
 .popularTrainsStatusPill {
@@ -71,11 +84,252 @@
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); /* Add inner shadow on hover */
 }
 
+/* Edit button: hidden by default, revealed on hover (desktop) or long-press
+   (mobile, where the long-press jumps straight to the editor so the button
+   doesn't need to appear separately). */
+.editButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.trainCard:hover .editButton,
+.editButton:focus {
+  opacity: 1;
+}
+.editButton:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Inline editor that replaces the card while the user is customizing.
+   Matches the card silhouette (same width-ish, same border radius) so the
+   layout doesn't jump when toggling between view and edit mode. */
+.editCard {
+  width: 240px;
+  padding: 12px 14px 14px;
+  background: #ffffff;
+  color: #1d1f24;
+  text-align: left;
+  border: 1px solid #d7d9de;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  /* Override .trainCard:hover scale — editing shouldn't jiggle on hover. */
+  transform: none !important;
+  /* Re-enable text selection inside the editor since .trainCard disables it. */
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+.editCard .editButton { display: none; }
+
+.editHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.editHeader h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #4a4e57;
+}
+.editCloseBtn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 18px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.editCloseBtn:hover { background: #eef0f4; color: #1d1f24; }
+
+.editField + .editField,
+.editForm + .editField { margin-top: 10px; }
+
+.editLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.editRow {
+  display: flex;
+  gap: 6px;
+}
+.editInput {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #cfd3d9;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #f7f8fa;
+  color: #1d1f24;
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.editInput:focus {
+  border-color: #6c8cff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.18);
+}
+
+.editSelect {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #cfd3d9;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #f7f8fa;
+  color: #1d1f24;
+  outline: none;
+}
+.editSelect:focus {
+  border-color: #6c8cff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.18);
+}
+
+.editLoadBtn,
+.editSaveBtn,
+.editResetBtn {
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
+}
+.editLoadBtn:active,
+.editSaveBtn:active,
+.editResetBtn:active { transform: translateY(1px); }
+
+.editLoadBtn {
+  background: #eef0f4;
+  color: #1d1f24;
+  border-color: #d7d9de;
+}
+.editLoadBtn:hover:not(:disabled) { background: #e3e6ec; }
+.editLoadBtn:disabled { opacity: 0.6; cursor: default; }
+
+.editSaveBtn {
+  background: #2f855a;
+  color: #ffffff;
+  border-color: #276749;
+}
+.editSaveBtn:hover:not(:disabled) { background: #276749; }
+.editSaveBtn:disabled {
+  background: #b6bac2;
+  border-color: #a8acb4;
+  color: #ffffff;
+  cursor: not-allowed;
+}
+
+.editResetBtn {
+  background: #ffffff;
+  color: #b42318;
+  border-color: #fecdca;
+}
+.editResetBtn:hover { background: #fef3f2; }
+
+.editActions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.editError {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #b42318;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  border-radius: 6px;
+}
+
 @media (max-width: 768px) {
   .popularTrainsStatusText {
     margin-top: 0px; /* Adjusted for mobile */
   }
+  /* No per-card pencil on mobile — it clutters the grid and duplicates the
+     long-press gesture. Discoverability comes from .popularTrainsHint below
+     the grid instead. */
+  .editButton {
+    display: none;
+  }
 }
+
+/* Mobile-only hint banner sitting below the 4 cards. Hidden on desktop
+   since hover reveals the pencil affordance there. Auto-dismisses after
+   the user saves any slot, or explicitly via ×. */
+.popularTrainsHint {
+  display: none; /* shown only at the mobile breakpoint below */
+  margin: 2px auto 0;
+  padding: 6px 10px 6px 14px;
+  max-width: 320px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #eef2ff;
+  color: #3b4b7a;
+  border: 1px solid #d7ddf2;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.popularTrainsHintText {
+  flex: 1;
+  text-align: center;
+}
+.popularTrainsHintClose {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 18px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.popularTrainsHintClose:hover { opacity: 1; background: rgba(59, 75, 122, 0.1); }
+
+@media (max-width: 768px) {
+  .popularTrainsHint { display: flex; }
+}
+
+body.dark-mode .popularTrainsHint,
+body.dark-analog .popularTrainsHint {
+  background: #2a2a2e;
+  color: #c5cbd9;
+  border-color: #3a3a40;
+}
+body.dark-mode .popularTrainsHintClose:hover,
+body.dark-analog .popularTrainsHintClose:hover { background: rgba(255, 255, 255, 0.08); }
 
 /* Dark-analog mode styles */
 body.dark-analog .trainCard {
@@ -92,4 +346,64 @@ body.dark-analog .popularTrainsStatusPill {
 
 body.dark-analog .popularTrainsStatusText {
   color: #e0e0e0; /* Light grey text */
+}
+
+/* Shared dark-theme editor styles for dark-mode and dark-analog. The two
+   themes differ only by font-family + base body color; the editor card
+   itself is styled identically so it reads as "dark" under both. */
+body.dark-mode .editCard,
+body.dark-analog .editCard {
+  background: #1f1f22;
+  color: #e0e0e0;
+  border-color: #3a3a40;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+body.dark-mode .editHeader h3,
+body.dark-analog .editHeader h3 { color: #a7acb6; }
+body.dark-mode .editCloseBtn,
+body.dark-analog .editCloseBtn { color: #a7acb6; }
+body.dark-mode .editCloseBtn:hover,
+body.dark-analog .editCloseBtn:hover { background: #2a2a2e; color: #e0e0e0; }
+body.dark-mode .editLabel,
+body.dark-analog .editLabel { color: #a7acb6; }
+body.dark-mode .editInput,
+body.dark-mode .editSelect,
+body.dark-analog .editInput,
+body.dark-analog .editSelect {
+  background: #2a2a2e;
+  color: #e0e0e0;
+  border-color: #3a3a40;
+}
+body.dark-mode .editInput:focus,
+body.dark-mode .editSelect:focus,
+body.dark-analog .editInput:focus,
+body.dark-analog .editSelect:focus {
+  background: #1c1c1f;
+  border-color: #6c8cff;
+}
+body.dark-mode .editLoadBtn,
+body.dark-analog .editLoadBtn {
+  background: #2a2a2e;
+  color: #e0e0e0;
+  border-color: #3a3a40;
+}
+body.dark-mode .editLoadBtn:hover:not(:disabled),
+body.dark-analog .editLoadBtn:hover:not(:disabled) { background: #34343a; }
+body.dark-mode .editResetBtn,
+body.dark-analog .editResetBtn {
+  background: transparent;
+  color: #f98484;
+  border-color: #633;
+}
+body.dark-mode .editSaveBtn:disabled,
+body.dark-analog .editSaveBtn:disabled {
+  background: #3a3a40;
+  border-color: #3a3a40;
+  color: #8a8f99;
+}
+body.dark-mode .editError,
+body.dark-analog .editError {
+  background: #3a1e1d;
+  color: #f98484;
+  border-color: #633;
 }
