@@ -15,6 +15,26 @@ const HINT_DISMISSED_KEY = 'ontrack.popularHintDismissed';
 const FALLBACK_WEEKDAY = ['3720', '3725', '3243', '3883'];
 const FALLBACK_WEEKEND = ['7826', '7867', '7232', '7273'];
 const LONG_PRESS_MS = 500;
+// Matches the @media breakpoint in PopularTrains.css. Below this, the inline
+// editor would push other cards out of the 2x2 grid into a 2+1+1 reflow that
+// reads as broken — so on mobile we render the editor as a modal overlay
+// instead, leaving the grid intact behind it.
+const MOBILE_MAX_PX = 768;
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`).matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`);
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
 
 function loadSlots() {
   try {
@@ -163,6 +183,7 @@ const PopularTrains = ({ onSelectTrain }) => {
     setHintDismissed(true);
     try { localStorage.setItem(HINT_DISMISSED_KEY, '1'); } catch {}
   }, []);
+  const isMobile = useIsMobile();
 
   // Each slot's effective train number: user override, else dynamic default.
   const effectiveNumbers = useMemo(() => {
@@ -233,9 +254,18 @@ const PopularTrains = ({ onSelectTrain }) => {
     return arrival > departure ? 'Late' : 'On Time';
   };
 
+  // On mobile, suppress inline editing inside SlotCard and render the editor
+  // as a modal overlay (below) — that way the 2x2 grid stays intact behind it
+  // instead of reflowing when one slot becomes wider.
+  const inlineEditingIndex = isMobile ? -1 : editingIndex;
+  const showOverlay = isMobile && editingIndex >= 0;
+  const overlaySlot = showOverlay ? slots[editingIndex] : null;
+  const overlayInitial = showOverlay
+    ? (overlaySlot || { trainNumber: effectiveNumbers[editingIndex] || '', stop: null })
+    : null;
+
   return (
     <div className="popularTrainsContainer">
-      <h2 className="popularTrainsHeader">Popular Trains</h2>
       <div className="trainContainer">
         {Array.from({ length: NUM_SLOTS }, (_, index) => (
           <SlotCard
@@ -244,11 +274,11 @@ const PopularTrains = ({ onSelectTrain }) => {
             trainNumber={effectiveNumbers[index]}
             train={trainsData[index]}
             slot={slots[index]}
-            isEditing={editingIndex === index}
+            isEditing={inlineEditingIndex === index}
             onEnterEdit={() => setEditingIndex(index)}
             onExitEdit={() => setEditingIndex(-1)}
             onSave={(newSlot) => { updateSlot(index, newSlot); setEditingIndex(-1); }}
-            onReset={() => { updateSlot(index, null); setEditingIndex(-1); }}
+            onUseRandom={() => { updateSlot(index, null); setEditingIndex(-1); }}
             onSelect={(num) => onSelectTrain(num)}
             getStopStatus={getStopStatus}
           />
@@ -267,6 +297,24 @@ const PopularTrains = ({ onSelectTrain }) => {
           </button>
         </div>
       )}
+      {showOverlay && (
+        <div
+          className="editOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Customize slot"
+          onClick={() => setEditingIndex(-1)}
+        >
+          <div className="editOverlayInner" onClick={(e) => e.stopPropagation()}>
+            <EditPanel
+              initial={overlayInitial}
+              onSave={(newSlot) => { updateSlot(editingIndex, newSlot); setEditingIndex(-1); }}
+              onUseRandom={() => { updateSlot(editingIndex, null); setEditingIndex(-1); }}
+              onCancel={() => setEditingIndex(-1)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -275,7 +323,7 @@ const PopularTrains = ({ onSelectTrain }) => {
 
 const SlotCard = ({
   index, trainNumber, train, slot, isEditing,
-  onEnterEdit, onExitEdit, onSave, onReset, onSelect, getStopStatus,
+  onEnterEdit, onExitEdit, onSave, onUseRandom, onSelect, getStopStatus,
 }) => {
   const cardRef = useRef(null);
   const longPressTimer = useRef(null);
@@ -308,7 +356,7 @@ const SlotCard = ({
       <EditPanel
         initial={slot || { trainNumber: trainNumber || '', stop: null }}
         onSave={onSave}
-        onReset={slot ? onReset : null}
+        onUseRandom={onUseRandom}
         onCancel={onExitEdit}
       />
     );
@@ -391,7 +439,13 @@ const SlotCard = ({
 // Stop options always come from GTFS /api/scheduled-stops — it returns the
 // FULL route for any train on any date, unlike the realtime API which only
 // returns upcoming stops once a train is in progress.
-const EditPanel = ({ initial, onSave, onReset, onCancel }) => {
+//
+// Flow: typing a train number auto-loads its stops (debounced). The stop
+// picker is optional — saving without one falls back to the destination.
+// The shuffle button always offers a one-tap return to a random active train.
+const AUTO_LOAD_DEBOUNCE_MS = 450;
+
+const EditPanel = ({ initial, onSave, onUseRandom, onCancel }) => {
   const [trainInput, setTrainInput] = useState(initial.trainNumber || '');
   // Title-case the saved stop on open — older saves may have been stored in
   // ALL CAPS (if they were made while the train was inactive and stops came
@@ -399,10 +453,8 @@ const EditPanel = ({ initial, onSave, onReset, onCancel }) => {
   // the pre-selection matching the dropdown options.
   const [stopInput, setStopInput] = useState(titleCase(initial.stop) || '');
   const [stopOptions, setStopOptions] = useState([]);
-  // Which train number's stops are currently in `stopOptions`. Save is gated
-  // on trainInput matching this — so typing a new train (which invalidates
-  // the stop list from the old train's line) forces the user back through
-  // Load + re-pick before they can save.
+  // Which train number's stops are currently in `stopOptions`. Used to detect
+  // when the typed input has diverged from what's loaded (so we re-fetch).
   const [loadedFor, setLoadedFor] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -475,109 +527,117 @@ const EditPanel = ({ initial, onSave, onReset, onCancel }) => {
     }
   }, []);
 
-  // On mount, always load via loadStopsFor (GTFS-first). We intentionally
-  // skip seeding from the parent's liveStops because the realtime API only
-  // returns upcoming stops — using it would hide passed stops from the
-  // dropdown for any train mid-route.
-  useEffect(() => {
-    if (initial.trainNumber) {
-      loadStopsFor(initial.trainNumber);
-    }
-    // Mount-only effect; changes afterward flow through Load.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleLoad = (e) => {
-    e.preventDefault();
-    const trimmed = trainInput.trim();
-    if (!trimmed) return;
-    // Only clear the stop selection if the train number actually changed —
-    // that's the scenario where a saved stop could belong to a different
-    // line. Re-Loading the same train (e.g., to refresh its route) should
-    // preserve whatever the user had picked.
-    if (trimmed !== loadedFor) {
-      setStopInput('');
-    }
-    loadStopsFor(trimmed);
-  };
-
-  // Save is allowed only once the user has:
-  //   1. A non-empty train number,
-  //   2. Successfully loaded that exact train's stops (trainInput === loadedFor),
-  //   3. Explicitly picked a stop from that loaded list.
-  // Any change to the train number invalidates condition 2 and re-locks Save.
+  // Auto-load whenever the typed train number changes — debounced so we don't
+  // hammer the API mid-typing. Empty input resets everything to a clean
+  // "type a train number" state. Re-running for the same already-loaded
+  // number is a no-op so re-opening the editor doesn't refetch needlessly.
+  // We don't clear stopInput here: loadStopsFor preserves a saved stop if the
+  // new train still hits it, and otherwise clears it once stops arrive. That
+  // also means the saved-stop pre-selection survives StrictMode's effect
+  // re-runs (a setStopInput('') here would race against that preservation).
   const trimmedTrain = trainInput.trim();
+  useEffect(() => {
+    if (!trimmedTrain) {
+      setStopOptions([]);
+      setLoadedFor(null);
+      setLoadError('');
+      setIsLoading(false);
+      return undefined;
+    }
+    if (trimmedTrain === loadedFor) return undefined;
+    const t = setTimeout(() => loadStopsFor(trimmedTrain), AUTO_LOAD_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [trimmedTrain, loadedFor, loadStopsFor]);
+
+  // Save is allowed once the user has:
+  //   1. A non-empty train number whose stops loaded successfully, and
+  //   2. Either no stop chosen (we'll fall back to destination) OR a stop
+  //      that's actually on that train's route.
   const canSave =
     !!trimmedTrain &&
     trimmedTrain === loadedFor &&
-    !!stopInput &&
-    stopOptions.includes(stopInput) &&
     !isLoading &&
-    !loadError;
+    !loadError &&
+    (stopInput === '' || stopOptions.includes(stopInput));
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave({ trainNumber: trimmedTrain, stop: stopInput });
+    // Empty stop persists as null so the card uses its destination default.
+    onSave({ trainNumber: trimmedTrain, stop: stopInput || null });
+  };
+
+  const handleFormSubmit = (e) => {
+    // Pressing Enter in the input submits the form — treat that as Save.
+    e.preventDefault();
+    handleSave();
   };
 
   return (
     <div className="trainCard editCard">
       <div className="editHeader">
         <h3>Customize</h3>
-        <button
-          type="button"
-          className="editCloseBtn"
-          aria-label="Close customizer"
-          onClick={onCancel}
-        >
-          ×
-        </button>
-      </div>
-
-      <form onSubmit={handleLoad} className="editForm">
-        <label className="editLabel" htmlFor="editTrainInput">Train number</label>
-        <div className="editRow">
-          <input
-            ref={inputRef}
-            id="editTrainInput"
-            className="editInput"
-            type="text"
-            inputMode="numeric"
-            value={trainInput}
-            onChange={(e) => setTrainInput(e.target.value)}
-            placeholder="e.g. 3725"
-          />
-          <button type="submit" className="editLoadBtn" disabled={isLoading}>
-            {isLoading ? '…' : 'Load'}
+        <div className="editHeaderActions">
+          {/* Shuffle lives in the header — it's an alternative to entering
+              your own train, not an alternative to Save. Keeping it away from
+              the Save button avoids accidental taps. */}
+          <button
+            type="button"
+            className="editIconBtn"
+            onClick={onUseRandom}
+            aria-label="Use a random active train"
+            title="Use a random active train"
+          >
+            <ShuffleIcon />
+          </button>
+          <button
+            type="button"
+            className="editIconBtn editCloseBtn"
+            aria-label="Close customizer"
+            onClick={onCancel}
+          >
+            ×
           </button>
         </div>
+      </div>
+
+      <form onSubmit={handleFormSubmit} className="editForm">
+        <label className="editLabel" htmlFor="editTrainInput">Train number</label>
+        <input
+          ref={inputRef}
+          id="editTrainInput"
+          className="editInput editInputFull"
+          type="text"
+          inputMode="numeric"
+          value={trainInput}
+          onChange={(e) => setTrainInput(e.target.value)}
+          placeholder="e.g. 3725"
+        />
       </form>
 
-      {stopOptions.length > 0 && (
-        <div className="editField">
-          <label className="editLabel" htmlFor="editStopSelect">Display stop</label>
-          <select
-            id="editStopSelect"
-            className="editSelect"
-            value={stopInput}
-            onChange={(e) => setStopInput(e.target.value)}
-          >
-            {/* Placeholder — user must pick a stop explicitly. The destination
-                appears once, as the last item in the list (where it belongs),
-                not repeated at the top. */}
-            <option value="" disabled>Select a stop…</option>
-            {stopOptions.map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div className="editField">
+        <label className="editLabel" htmlFor="editStopSelect">Stop (optional)</label>
+        <select
+          id="editStopSelect"
+          className="editSelect"
+          value={stopInput}
+          onChange={(e) => setStopInput(e.target.value)}
+          disabled={stopOptions.length === 0}
+        >
+          <option value="">
+            {isLoading
+              ? 'Loading stops…'
+              : stopOptions.length === 0
+                ? (trimmedTrain ? 'No stops loaded' : 'Enter a train number first')
+                : 'Use destination'}
+          </option>
+          {stopOptions.map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+      </div>
       {loadError && <p className="editError">{loadError}</p>}
 
       <div className="editActions">
-        {onReset && (
-          <button type="button" className="editResetBtn" onClick={onReset}>Reset</button>
-        )}
         <button
           type="button"
           className="editSaveBtn"
@@ -590,5 +650,28 @@ const EditPanel = ({ initial, onSave, onReset, onCancel }) => {
     </div>
   );
 };
+
+// Inline Lucide-style shuffle glyph. Inline so we don't pull in an icon
+// dependency for one button; `currentColor` lets it inherit the dark-mode
+// theme tweaks applied to .editIconBtn.
+const ShuffleIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M16 3h5v5" />
+    <path d="M4 20 21 3" />
+    <path d="M21 16v5h-5" />
+    <path d="m15 15 6 6" />
+    <path d="m4 4 5 5" />
+  </svg>
+);
 
 export default PopularTrains;

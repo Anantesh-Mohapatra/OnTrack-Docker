@@ -145,19 +145,30 @@
   text-transform: uppercase;
   color: #4a4e57;
 }
-.editCloseBtn {
-  width: 22px;
-  height: 22px;
+.editHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+/* Shared style for the small header icon buttons (shuffle + close). They sit
+   in the corner away from Save so they're never confused with the primary
+   action. */
+.editIconBtn {
+  width: 26px;
+  height: 26px;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: #6b7280;
-  font-size: 18px;
-  line-height: 20px;
   cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
 }
-.editCloseBtn:hover { background: #eef0f4; color: #1d1f24; }
+.editIconBtn:hover { background: #eef0f4; color: #1d1f24; }
+.editCloseBtn { font-size: 20px; line-height: 1; }
 
 .editField + .editField,
 .editForm + .editField { margin-top: 10px; }
@@ -172,13 +183,7 @@
   margin-bottom: 4px;
 }
 
-.editRow {
-  display: flex;
-  gap: 6px;
-}
 .editInput {
-  flex: 1;
-  min-width: 0;
   padding: 7px 9px;
   border: 1px solid #cfd3d9;
   border-radius: 6px;
@@ -188,6 +193,7 @@
   outline: none;
   transition: border-color 0.15s, background-color 0.15s;
 }
+.editInputFull { width: 100%; box-sizing: border-box; }
 .editInput:focus {
   border-color: #6c8cff;
   background: #ffffff;
@@ -209,35 +215,20 @@
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(108, 140, 255, 0.18);
 }
+.editSelect:disabled { opacity: 0.65; cursor: default; }
 
-.editLoadBtn,
-.editSaveBtn,
-.editResetBtn {
+.editSaveBtn {
   padding: 7px 12px;
-  border: 1px solid transparent;
+  border: 1px solid #276749;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
-}
-.editLoadBtn:active,
-.editSaveBtn:active,
-.editResetBtn:active { transform: translateY(1px); }
-
-.editLoadBtn {
-  background: #eef0f4;
-  color: #1d1f24;
-  border-color: #d7d9de;
-}
-.editLoadBtn:hover:not(:disabled) { background: #e3e6ec; }
-.editLoadBtn:disabled { opacity: 0.6; cursor: default; }
-
-.editSaveBtn {
   background: #2f855a;
   color: #ffffff;
-  border-color: #276749;
 }
+.editSaveBtn:active { transform: translateY(1px); }
 .editSaveBtn:hover:not(:disabled) { background: #276749; }
 .editSaveBtn:disabled {
   background: #b6bac2;
@@ -246,17 +237,9 @@
   cursor: not-allowed;
 }
 
-.editResetBtn {
-  background: #ffffff;
-  color: #b42318;
-  border-color: #fecdca;
-}
-.editResetBtn:hover { background: #fef3f2; }
-
 .editActions {
   margin-top: 14px;
   display: flex;
-  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -280,6 +263,39 @@
   .editButton {
     display: none;
   }
+  /* Bump touch targets inside the customize overlay so finger taps land
+     reliably — the desktop sizing is too tight on phones. */
+  .editOverlay .editInput,
+  .editOverlay .editSelect {
+    padding: 11px 12px;
+    font-size: 15px;
+  }
+  .editOverlay .editSaveBtn { padding: 11px 18px; font-size: 14px; }
+  .editOverlay .editIconBtn { width: 34px; height: 34px; }
+  .editOverlay .editCloseBtn { font-size: 24px; }
+}
+
+/* Mobile-only modal overlay for the customize panel. On desktop the editor
+   replaces a slot inline (handled by SlotCard); on mobile that reflow breaks
+   the 2x2 grid, so we float it instead. */
+.editOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.editOverlayInner {
+  width: 100%;
+  max-width: 320px;
+}
+/* Inside the overlay the card should fill the inner wrapper rather than its
+   fixed 240px desktop width. */
+.editOverlay .editCard {
+  width: 100%;
 }
 
 /* Mobile-only hint banner sitting below the 4 cards. Hidden on desktop
@@ -360,10 +376,10 @@ body.dark-analog .editCard {
 }
 body.dark-mode .editHeader h3,
 body.dark-analog .editHeader h3 { color: #a7acb6; }
-body.dark-mode .editCloseBtn,
-body.dark-analog .editCloseBtn { color: #a7acb6; }
-body.dark-mode .editCloseBtn:hover,
-body.dark-analog .editCloseBtn:hover { background: #2a2a2e; color: #e0e0e0; }
+body.dark-mode .editIconBtn,
+body.dark-analog .editIconBtn { color: #a7acb6; }
+body.dark-mode .editIconBtn:hover,
+body.dark-analog .editIconBtn:hover { background: #2a2a2e; color: #e0e0e0; }
 body.dark-mode .editLabel,
 body.dark-analog .editLabel { color: #a7acb6; }
 body.dark-mode .editInput,
@@ -380,20 +396,6 @@ body.dark-analog .editInput:focus,
 body.dark-analog .editSelect:focus {
   background: #1c1c1f;
   border-color: #6c8cff;
-}
-body.dark-mode .editLoadBtn,
-body.dark-analog .editLoadBtn {
-  background: #2a2a2e;
-  color: #e0e0e0;
-  border-color: #3a3a40;
-}
-body.dark-mode .editLoadBtn:hover:not(:disabled),
-body.dark-analog .editLoadBtn:hover:not(:disabled) { background: #34343a; }
-body.dark-mode .editResetBtn,
-body.dark-analog .editResetBtn {
-  background: transparent;
-  color: #f98484;
-  border-color: #633;
 }
 body.dark-mode .editSaveBtn:disabled,
 body.dark-analog .editSaveBtn:disabled {
