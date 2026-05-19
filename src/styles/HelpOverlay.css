@@ -1,102 +1,178 @@
+/* ───────────────────────────────────────────────────────────────────
+   Help overlay — same scrim+panel pattern as the customize modal so
+   they feel like part of the same system. Wider panel for prose,
+   editorial serif type voice for the body content.
+   ─────────────────────────────────────────────────────────────────── */
+
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(20, 18, 12, 0.42);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 9vh 16px 16px;
+  z-index: 100;
+  /* Scroll the scrim when the panel is too tall for the viewport. Keeps
+     the panel itself scrollbar-free when content fits (the common
+     case on desktop). */
+  overflow-y: auto;
+  /* Compositor hint — animating opacity on a backdrop-blurred element
+     forces the browser to re-rasterize the blur every frame unless we
+     promote the scrim to its own composited layer. */
+  will-change: opacity;
+  animation: help-scrim-in 0.14s ease-out;
+}
+body.dark .overlay,
+body.dark-mode .overlay,
+body.dark-analog .overlay { background: rgba(0, 0, 0, 0.6); }
+@keyframes help-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+
+.content {
+  width: 100%;
+  max-width: 520px;
+  /* No max-height / overflow on the panel itself — overflow is handled
+     by the scrim so the scrollbar only appears when actually needed. */
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px -20px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  text-align: left;
+  position: relative;
+  /* flex-shrink: 0 prevents flex from compressing the panel to fit the
+     scrim — we want the scrim to scroll instead. */
+  flex-shrink: 0;
+  /* Compositor promotion + a single transform property in the keyframes
+     keeps the panel on the GPU compositor. Dropping the scale (was a
+     simultaneous opacity + translateY + scale) was the main source of
+     jank — three properties animating on a large element above a
+     backdrop blur made the frame budget too tight on most laptops. */
+  will-change: transform, opacity;
+  animation: help-panel-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes help-panel-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.helpHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.content h2 {
+  margin: 0;
+  font-family: "Newsreader", "Times New Roman", Times, serif;
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-align: left;
+}
+.helpClose {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: 22px/1 -apple-system, BlinkMacSystemFont, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.helpClose:hover {
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-color: var(--rule);
+  transform: none;
 }
 
-.content {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 100%;
-  text-align: center;
+.helpBody { padding: 18px 24px 6px; }
+.helpLead {
+  margin: 0 0 8px;
+  font-family: "Newsreader", "Times New Roman", Times, serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.helpSectionLabel {
+  margin: 22px 0 6px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.helpSectionLabel::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.list,
+.helpList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.helpList li {
+  padding: 10px 0 10px 22px;
   position: relative;
-  color: #000; /* Default text color for light mode */
+  font-family: "Newsreader", "Times New Roman", Times, serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  border-bottom: 1px dashed var(--rule-soft);
 }
-
-.content h2 {
-  text-align: center;
-}
-
-.helpCloseButton {
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #f0803d;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.helpCloseButton:hover {
-  background-color: #b31b90;
-}
-
-.list {
-  text-align: left;
-}
-
-.darkModeToggle {
+.helpList li:last-child { border-bottom: 0; }
+.helpList li::before {
+  content: "";
   position: absolute;
-  bottom: 20px;
-  right: 20px;
-  padding: 10px 20px;
-  background-color: #333;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  top: 18px;
+  left: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--njt-orange);
+}
+body.dark .helpList li::before,
+body.dark-mode .helpList li::before,
+body.dark-analog .helpList li::before { background: var(--amber); }
+.helpList li strong { font-weight: 600; color: var(--ink); }
+
+.helpFoot {
+  padding: 14px 24px 18px;
+  border-top: 1px dashed var(--rule);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  text-align: center;
+  text-transform: none;
 }
 
-.darkModeToggle:hover {
-  background-color: #b31b90;
-}
-
-body.dark-mode .content {
-  background-color: #333;
-  color: #f9f9f9; /* Text color for dark mode */
-}
-
-body.dark-mode .overlay {
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-body.dark-mode .content {
-  background-color: #333;
-  color: #fff;
-}
-
-/* Dark-analog mode styles */
-body.dark-analog .content {
-  background-color: #222; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .overlay {
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-body.dark-analog .helpCloseButton {
-  background-color: #444; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .darkModeToggle {
-  background-color: #444; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-/* Add other dark mode styles as needed */
+/* Legacy classes from the prior overlay — kept inert so nothing
+   styles a stray button if it shows up. */
+.helpCloseButton,
+.darkModeToggle { display: none; }

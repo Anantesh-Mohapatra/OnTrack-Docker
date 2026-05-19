@@ -15,26 +15,31 @@ const HINT_DISMISSED_KEY = 'ontrack.popularHintDismissed';
 const FALLBACK_WEEKDAY = ['3720', '3725', '3243', '3883'];
 const FALLBACK_WEEKEND = ['7826', '7867', '7232', '7273'];
 const LONG_PRESS_MS = 500;
-// Matches the @media breakpoint in PopularTrains.css. Below this, the inline
-// editor would push other cards out of the 2x2 grid into a 2+1+1 reflow that
-// reads as broken — so on mobile we render the editor as a modal overlay
-// instead, leaving the grid intact behind it.
-const MOBILE_MAX_PX = 768;
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return false;
-    return window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`).matches;
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`);
-    const onChange = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return isMobile;
-}
+// Short codes for each line (e.g. "NEC" for the Northeast Corridor Line).
+// Used as the bottom-left meta label on each popular card, matching the
+// prototype. Falls back to the raw LINECODE if a short isn't mapped.
+const LINE_SHORT_CODES = {
+  NE: 'NEC',
+  NC: 'NJCL',
+  ME: 'M&E',
+  MC: 'MOBO',
+  RV: 'RVL',
+  PV: 'PV',
+  BC: 'BC',
+  ML: 'ML',
+  GS: 'GLAD',
+  PR: 'PR',
+  AC: 'ACL',
+  AM: 'AMTK',
+  SP: 'SEPTA',
+  SL: 'MEAD',
+};
+
+// useIsMobile was used to switch the customize editor between inline
+// (desktop) and modal (mobile). The redesign makes it modal everywhere,
+// so the hook is no longer wired up. Left removed; reintroduce if any
+// future tweak needs per-viewport behavior.
 
 function loadSlots() {
   try {
@@ -147,6 +152,27 @@ function findStop(stops, target) {
   return stops.find((s) => canonStation(s.STATIONNAME) === t) || null;
 }
 
+// Find the next undeparted stop (the one the train is currently heading
+// to). Mirrors the logic in TrainStatus.determineStops:
+//   - If nothing has departed yet, the next stop is the origin.
+//   - If the final stop has departed, the train has concluded → null.
+//   - Otherwise, the stop after the most recent "YES" is next.
+// We need this here because the popular card's "On Time / Late" badge
+// should reflect what's happening RIGHT NOW (next stop's lateness), not
+// whether the train left its origin on time (STOPS[0]'s status).
+function findNextStop(train) {
+  if (!train?.STOPS?.length) return null;
+  const stops = train.STOPS;
+  const allNo = stops.every((s) => s.DEPARTED === 'NO');
+  if (allNo) return stops[0];
+  const lastIdx = stops.length - 1;
+  if (stops[lastIdx].DEPARTED === 'YES') return null;
+  for (let i = stops.length - 1; i >= 0; i--) {
+    if (stops[i].DEPARTED === 'YES') return stops[i + 1] || null;
+  }
+  return stops[0];
+}
+
 // Title-case a station name. Needed because GTFS returns stops in ALL CAPS
 // ("NEW YORK PENN STATION", "JERSEY AVE.") while the realtime API returns
 // them pre-formatted ("New York Penn Station", "Jersey Ave."). Normalizing
@@ -183,7 +209,9 @@ const PopularTrains = ({ onSelectTrain }) => {
     setHintDismissed(true);
     try { localStorage.setItem(HINT_DISMISSED_KEY, '1'); } catch {}
   }, []);
-  const isMobile = useIsMobile();
+  // useIsMobile is still defined above for any future per-viewport tweaks,
+  // but the customizer is now modal on every viewport, so we don't gate on
+  // it here anymore.
 
   // Each slot's effective train number: user override, else dynamic default.
   const effectiveNumbers = useMemo(() => {
@@ -254,11 +282,12 @@ const PopularTrains = ({ onSelectTrain }) => {
     return arrival > departure ? 'Late' : 'On Time';
   };
 
-  // On mobile, suppress inline editing inside SlotCard and render the editor
-  // as a modal overlay (below) — that way the 2x2 grid stays intact behind it
-  // instead of reflowing when one slot becomes wider.
-  const inlineEditingIndex = isMobile ? -1 : editingIndex;
-  const showOverlay = isMobile && editingIndex >= 0;
+  // Per the redesign, the customizer is a modal everywhere — cleaner UX,
+  // one code path, identical experience across viewports. The grid stays
+  // intact behind a soft scrim instead of reflowing when an inline editor
+  // would push a slot wider.
+  const inlineEditingIndex = -1;
+  const showOverlay = editingIndex >= 0;
   const overlaySlot = showOverlay ? slots[editingIndex] : null;
   const overlayInitial = showOverlay
     ? (overlaySlot || { trainNumber: effectiveNumbers[editingIndex] || '', stop: null })
@@ -363,9 +392,10 @@ const SlotCard = ({
   }
 
   const isAvailable = !!(train && train.TRAIN_ID);
-  const backgroundColor = isAvailable ? train.BACKCOLOR : '#888888';
-  const textColor = isAvailable ? train.FORECOLOR : '#FFFFFF';
-  const pillBackgroundColor = isAvailable ? 'rgba(160,160,160,0.8)' : 'rgba(102,102,102,0.8)';
+  // Line color is the card's identity cue (top stripe), not its surface
+  // — surface is paper in CSS. We forward the color via --line-color so
+  // CSS can route it into the stripe + line-name color on each card.
+  const lineColor = isAvailable ? train.BACKCOLOR : 'var(--ink-soft)';
 
   // Which stop's ETA to show on the card.
   // - Customized slot with a saved stop: that stop (fall back to destination
@@ -392,16 +422,40 @@ const SlotCard = ({
 
   const timeToStation = targetStop ? formatTime(targetStop.TIME) : 'N/A';
   const stationLabel = targetStop?.STATIONNAME || 'N/A';
-  const customStatus = isAvailable
-    ? getStopStatus(train.STOPS?.[0]?.TIME, train.STOPS?.[0]?.DEP_TIME)
+  // Status should reflect the train's CURRENT state, not its origin.
+  // Use the next undeparted stop's lateness; for a concluded train fall
+  // back to the final stop so the card still reads something sensible.
+  const statusStop = isAvailable
+    ? (findNextStop(train) || train.STOPS?.[train.STOPS.length - 1])
+    : null;
+  const customStatus = statusStop
+    ? getStopStatus(statusStop.TIME, statusStop.DEP_TIME)
     : 'N/A';
-  const circleColor = customStatus === 'On Time' ? '#90EE90' : 'red';
+  const statusClass =
+    customStatus === 'Late' ? 'late'
+    : customStatus === 'Cancelled' ? 'cancelled'
+    : 'ontime';
+
+  // Lateness in whole minutes — feeds the "+N MIN" label on late cards.
+  let lateMin = 0;
+  if (customStatus === 'Late' && statusStop) {
+    const a = new Date(Date.parse(statusStop.TIME));
+    const d = new Date(Date.parse(statusStop.DEP_TIME));
+    if (!isNaN(a) && !isNaN(d)) lateMin = Math.max(0, Math.round((a - d) / 60000));
+  }
+  const lineShort = isAvailable ? (LINE_SHORT_CODES[train.LINECODE] || train.LINECODE) : '';
+  const statusLabel =
+    customStatus === 'Late' && lateMin > 0
+      ? `+${lateMin} MIN`
+      : customStatus === 'Cancelled'
+        ? 'CXL'
+        : 'ON TIME';
 
   return (
     <div
       ref={cardRef}
       className={`trainCard ${isAvailable ? '' : 'trainCardDisabled'}`}
-      style={{ backgroundColor, color: textColor }}
+      style={{ '--line-color': lineColor }}
       onClick={onClick}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -416,20 +470,25 @@ const SlotCard = ({
       >
         ✎
       </button>
-      <h3>{trainNumber ? `Train ${trainNumber}` : '—'}</h3>
       {isAvailable ? (
         <>
-          <p className="stationText">To {stationLabel}: {timeToStation}</p>
+          <div className="popNum">
+            <span className="popLine">{lineShort}</span> {trainNumber}
+          </div>
+          <div className="popDest">{stationLabel}</div>
           {stopMismatch && (
-            <p className="stopMismatch">(saved stop not on today's route)</p>
+            <div className="stopMismatch">stop n/a</div>
           )}
-          <div className="popularTrainsStatusPill" style={{ color: textColor, backgroundColor: pillBackgroundColor }}>
-            <span className="popularTrainsStatusText">{customStatus}</span>
-            <span className="popularTrainsStatusCircle" style={{ borderColor: textColor, backgroundColor: circleColor }}></span>
+          <div className="popMeta">
+            <span className="popTime">{timeToStation}</span>
+            <span className={`popStatus ${statusClass}`}>{statusLabel}</span>
           </div>
         </>
       ) : (
-        <p>Train is not currently active</p>
+        <>
+          <div className="popNum">{trainNumber || '—'}</div>
+          <p className="popInactive">Train not active</p>
+        </>
       )}
     </div>
   );

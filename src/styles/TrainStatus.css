@@ -1,266 +1,120 @@
-button:hover {
-  transform: scale(1.05); /* Slightly enlarge on hover */
-}
+/* ───────────────────────────────────────────────────────────────────
+   Search bar (the lookup console) + any container styling shared by
+   the StatusTicket + Schedule + Location stack underneath it.
+   ─────────────────────────────────────────────────────────────────── */
 
-.pillContainer {
-  border-radius: 25px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-  position: relative; /* Added to position background image */
-}
+.TrainStatus { display: block; }
 
-.copyIcon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.lineCircle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  margin-left: 10px; /* Adjusted margin to 10 pixels */
-  position: relative;
-  cursor: pointer;
-}
-
-.lineCircle:hover .copyIcon {
-  opacity: 1;
-}
-
-.linePill {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 10px;
-  border-radius: 15px;
-  border: 2px solid;
-  margin-bottom: 10px;
-  max-width: 200px; /* Reduced width */
-}
-
-.lineText {
-  flex: 1;
-  text-align: left;
-  display: flex;
-  align-items: center; /* Vertically center the text */
-}
-
-.activeInfo {
-  margin-bottom: 10px;
-}
-
-.inactiveInfo {
-  margin-bottom: 10px;
-  font-style: italic;
-  color: red;
-}
-
-.statusPill {
-  display: inline-flex;
-  align-items: center;
-  width: 100px;
-  padding: 5px 10px; /* Increased size to match PopularTrains */
-  border-radius: 15px;
-  margin-bottom: 5px;
-  background-color: rgba(160, 160, 160, 0.8);
-}
-
-.statusText {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Align text to the left */
-  padding: 2px 0;
-  color: #FFFFFF; /* Always white color */
-}
-
-.statusCircle {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid #FFFFFF; /* Always white border color */
-  margin-left: 5px;
-}
-
-@media (max-width: 600px) {
-  .departedColumn {
-    display: none;
-  }
-}
-
+/* Pill-shaped lookup shell: mono input on the left, "CHECK" submit on
+   the right with a thin rule between them. The input doubles as the
+   "current train" display when a result is loaded ("Train 3725"). */
 .form {
   display: flex;
-  align-items: center; /* Changed to center to align loading circle */
-  justify-content: center;
-  margin-bottom: 20px;
+  align-items: stretch;
+  margin: 0 auto 22px;
+  max-width: 520px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form:focus-within {
+  border-color: var(--ink);
+  box-shadow: var(--shadow-card), 0 0 0 3px rgba(240, 128, 60, 0.15);
 }
 
 .input {
-  padding: 10px;
-  font-size: 16px;
-  width: 200px;
-  margin-right: 10px;
-  box-sizing: border-box; /* Include padding in the element's total width and height */
-  height: 40px; /* Ensure the input field matches the height of the button */
-  border-radius: 5px; /* Rounded corners */
-  border: 1px solid #ccc; /* Light grey border */
-  outline: none; /* Remove default outline */
-  transition: border-color 0.3s; /* Smooth transition for border color */
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 22px/1 "JetBrains Mono", ui-monospace, monospace;
+  padding: 18px 18px 18px 22px;
+  outline: none;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+  text-align: left;
+  box-sizing: border-box;
+}
+.input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.7;
+  letter-spacing: 0.02em;
 }
 
 .button {
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: var(--bg-soft);
+  color: var(--ink);
+  font: 600 12px/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0 22px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  min-width: 120px;
+  height: auto;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  box-sizing: border-box; /* Include padding in the element's total width and height */
-  min-width: 140px; /* Ensure the button does not resize */
-  height: 40px; /* Ensure the button height is fixed */
-  border-radius: 5px; /* Rounded corners */
-  border: none; /* Remove default border */
-  background-color: #4CAF50; /* Green color */
-  color: #fff; /* White text */
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for background color and transform */
 }
-
+.button:hover { background: var(--rule); transform: none; }
+.button:disabled,
 .buttonDisabled {
-  background-color: #ccc; /* Grey color for disabled button */
-  cursor: not-allowed; /* Change cursor to not-allowed */
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: var(--bg-soft);
+  color: var(--ink-soft);
 }
 
+/* Tricolor loading dot for the submit button */
 .loadingCircle {
-  border: 4px solid #f3f3f3; /* Light grey */
-  border-top: 4px solid #f0803c; /* Accent color 1 */
-  border-right: 4px solid #b21b90; /* Accent color 2 */
-  border-bottom: 4px solid #004f9b; /* Accent color 3 */
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: var(--njt-orange);
+  border-right-color: var(--njt-magenta);
+  border-bottom-color: var(--njt-blue);
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  animation: spin 1s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
+/* Error message under the search bar. The component renders this with
+   an inline `style={{color:'red'}}` — we override so it picks up the
+   paper-card vocabulary in both themes. */
+.TrainStatus > p[style] {
+  color: #c5482b !important;
+  font-family: "Newsreader", serif;
+  font-style: italic;
+  font-size: 15px;
+  text-align: center;
+  margin: 8px auto 18px;
+  max-width: 520px;
+}
+body.dark .TrainStatus > p[style],
+body.dark-mode .TrainStatus > p[style],
+body.dark-analog .TrainStatus > p[style] {
+  color: #ff8a6e !important;
 }
 
-.greyedTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-  opacity: 0.5; /* Lightly greyed-out table */
-}
+/* Generic button hover from App.css used to scale all buttons; override
+   for the search bar so it doesn't jitter. */
+.form button:hover,
+.form button:focus { transform: none; }
 
-.cell {
-  border: 1px solid #ccc;
-  padding: 8px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-button:hover {
-  background-color: #e0702c; /* Darker orange on hover */
-  transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
-/* Dark mode styles */
-body.dark-mode .pillContainer {
-  background-color: #333; /* Dark background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .linePill {
-  background-color: #444; /* Darker background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .activeInfo {
-  color: #FFFFFF; /* White color for active info */
-}
-
-body.dark-mode .inactiveInfo {
-  color: #f44336; /* Red color for inactive info */
-}
-
-body.dark-mode .statusPill {
-  background-color: #555; /* Darker background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .input {
-  background-color: #555; /* Dark background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .table {
-  background-color: #333; /* Dark background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .buttonDisabled {
-  background-color: #333; /* Grey color for disabled button */
-  color: #f9f9f9; /* Light text */
-  cursor: not-allowed; /* Change cursor to not-allowed */
-}
-
-/* Dark-analog mode styles */
-body.dark-analog .pillContainer {
-  background-color: #222; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .linePill {
-  background-color: #333; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .activeInfo {
-  color: #e0e0e0; /* Light grey color for active info */
-}
-
-body.dark-analog .inactiveInfo {
-  color: #ff6347; /* Light red color for inactive info */
-}
-
-body.dark-analog .statusPill {
-  background-color: #444; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .input {
-  background-color: #444; /* Dark background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .table {
-  background-color: #222; /* Dark background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .buttonDisabled {
-  background-color: #444; /* Grey color for disabled button */
-  color: #e0e0e0; /* Light grey text */
-  cursor: not-allowed; /* Change cursor to not-allowed */
-}
-
-body.dark-analog .button {
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
+@media (max-width: 560px) {
+  .input {
+    font-size: 18px;
+    padding: 16px 14px 16px 18px;
+    letter-spacing: 0.02em;
+  }
+  .button { min-width: 96px; padding: 0 16px; font-size: 11px; }
 }

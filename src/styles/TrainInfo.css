@@ -1,167 +1,190 @@
-.pillContainer {
-  border-radius: 25px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-  position: relative; /* Added to position background image */
-}
+/* ───────────────────────────────────────────────────────────────────
+   Ticket-style train-status card. The single visual line indicator is
+   a thin selvage in the line color on the left edge; the actual NJT
+   line logo lives as a stamp in the top-right of the card body.
+   ─────────────────────────────────────────────────────────────────── */
 
-.copyIcon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.lineCircle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  margin-left: 10px; /* Adjusted margin to 10 pixels */
+.ticket {
   position: relative;
+  margin-top: 26px;
+  margin-bottom: 24px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
   cursor: pointer;
-}
-
-.lineCircle:hover .copyIcon {
-  opacity: 1;
-}
-
-.trainInfoHeader {
   text-align: left;
-  margin-bottom: 20px;
-  border: none; /* Remove border */
-  padding: 0; /* Remove padding */
+  color: var(--ink);
 }
 
-.linePill {
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  background: var(--line-color, var(--njt-orange));
+}
+
+.lineStamp {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ticketBody {
+  padding: 26px 26px 22px;
+  position: relative;
+  z-index: 1;
+}
+
+.destination .name {
+  font-family: "Newsreader", "Times New Roman", Times, serif;
+  font-size: clamp(34px, 5vw, 48px);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+  /* Reserve space so a long terminus doesn't slide under the stamp */
+  padding-right: 64px;
+}
+.destination .name .toLabel {
+  color: var(--line-color, var(--njt-orange));
+  font-weight: 500;
+  margin-right: 0.18em;
+}
+
+.destination .next {
+  margin: 16px 0 0;
+  font-family: "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  max-width: 540px;
+}
+.destination .next strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.destination .next .mins {
+  /* Number only — mono for tabular alignment when the value updates,
+     ink-colored so the live timing reads as primary. The "minutes"
+     word lives in its own span (.minsLabel) so the space between
+     stays in the parent sans font; mono spaces are em-width and
+     looked too airy otherwise. */
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  color: var(--ink);
+}
+.destination .next .minsLabel {
+  /* Paired with .mins — sans, same weight as the station name, same
+     ink color, so "{N} minutes" reads as one piece typographically. */
+  color: var(--ink);
+  font-weight: 600;
+}
+.destination .next.inactiveInfo {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.ticketFoot {
+  padding: 12px 26px 14px;
+  border-top: 1px dashed var(--rule);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 10px;
-  border-radius: 15px;
-  border: 2px solid;
-  margin-bottom: 10px;
-  max-width: 200px; /* Reduced width */
+  gap: 12px;
+  /* No wrap — when there isn't room, the line name wraps to a second
+     text line on its own rather than bumping the status pill to its
+     own row beneath it. */
+  flex-wrap: nowrap;
+  position: relative;
+  z-index: 1;
+}
+.ticketFoot .lineName {
+  /* Title-cased line name (e.g. "Northeast Corridor Line") wears its
+     line color so the card reads as belonging to that line at a
+     glance, matching the colored line short-code on the popular
+     cards. Sized to match the status pill — both pieces are the
+     footer's primary readout. */
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  line-height: 1.3;
+  color: var(--line-color, var(--ink-soft));
+  /* Take the available space and let the text wrap to multiple lines
+     inside it; flex-shrink + min-width:0 unlocks normal word-wrap
+     inside a flex item. */
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ticketFoot .statusPill {
+  /* Stay one piece — never shrink, never wrap to the next row. */
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
-.lineText {
-  flex: 1;
-  text-align: left;
-  display: flex;
-  align-items: center; /* Vertically center the text */
-}
-
-.activeInfo {
-  margin-bottom: 10px;
-  text-align: left; /* Align text to the left */
-}
-
-.inactiveInfo {
-  margin-bottom: 10px;
-  font-style: italic;
-  color: red;
-  text-align: left; /* Align text to the left */
-}
-
-.trainInfoStatusPill {
-  display: flex;
+/* Status pill — semantic color, mono uppercase, halo'd dot. Held at
+   12px to give long line names (e.g. "Montclair-Boonton Line") more
+   horizontal room before they wrap; the pill chrome carries enough
+   optical weight that it still reads as primary. */
+.statusPill {
+  display: inline-flex;
   align-items: center;
-  width: 120px; /* Ensure the pill width is consistent */
-  height: 25.6px; /* Set the height to 25.6px */
-  padding: 5px 10px; /* Increased size to match PopularTrains */
-  border-radius: 15px;
-  margin-bottom: 5px;
-  background-color: rgba(160, 160, 160, 0.8);
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
 }
+.statusPill.ontime    { background: rgba(45, 138, 80, 0.12);  color: #1f6a3a; }
+.statusPill.late      { background: rgba(197, 72, 43, 0.12);  color: #a93c1f; }
+.statusPill.cancelled { background: rgba(120, 120, 120, 0.18); color: var(--ink-soft); }
+body.dark .statusPill.ontime,
+body.dark-mode .statusPill.ontime,
+body.dark-analog .statusPill.ontime { background: rgba(125, 223, 148, 0.12); color: #7ddf94; }
+body.dark .statusPill.late,
+body.dark-mode .statusPill.late,
+body.dark-analog .statusPill.late { background: rgba(255, 138, 110, 0.16); color: #ff8a6e; }
 
-.trainInfoStatusText {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Align text to the left */
-  padding: 2px 0;
-  color: #FFFFFF; /* Always white color */
-  padding-right: 10px; /* Add 10px padding between the text and the circle */
-}
-
-.trainInfoStatusCircle {
-  width: 10px;
-  height: 10px;
+.statusPill .dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 1px solid #FFFFFF; /* Always white border color */
-  margin-left: 5px;
+}
+.statusPill.ontime .dot    { background: #2f8a4a; box-shadow: 0 0 0 3px rgba(45, 138, 80, 0.18); }
+.statusPill.late .dot      { background: #c5482b; box-shadow: 0 0 0 3px rgba(197, 72, 43, 0.18); }
+.statusPill.cancelled .dot { background: var(--ink-soft); }
+
+@media (max-width: 560px) {
+  .lineStamp { width: 40px; height: 40px; top: 16px; right: 16px; }
+  .destination .name { padding-right: 52px; }
+  .ticketBody { padding: 22px 20px 18px; }
+  .ticketFoot { padding: 12px 20px 14px; }
 }
 
-/* Dark mode styles */
-body.dark-mode .pillContainer {
-  background-color: #333; /* Dark background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .linePill {
-  background-color: #444; /* Darker background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .activeInfo {
-  color: #FFFFFF; /* White color for active info */
-}
-
-body.dark-mode .inactiveInfo {
-  color: #f44336; /* Red color for inactive info */
-}
-
-body.dark-mode .trainInfoStatusPill {
-  background-color: #555; /* Darker background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .trainInfoStatusText {
-  color: #FFFFFF; /* Always white color */
-}
-
-body.dark-mode .input {
-  background-color: #555; /* Dark background */
-  color: #f9f9f9; /* Light text */
-}
-
-/* Dark-analog mode styles */
-body.dark-analog .pillContainer {
-  background-color: #222; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .linePill {
-  background-color: #333; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .activeInfo {
-  color: #e0e0e0; /* Light grey color for active info */
-}
-
-body.dark-analog .inactiveInfo {
-  color: #ff6347; /* Light red color for inactive info */
-}
-
-body.dark-analog .trainInfoStatusPill {
-  background-color: #444; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .trainInfoStatusText {
-  color: #e0e0e0; /* Light grey text */
-}
-
-body.dark-analog .input {
-  background-color: #444; /* Dark background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
+/* Legacy pillContainer / linePill / trainInfoStatusPill rules from the
+   prior design — leave them inert so older markup elsewhere can't
+   accidentally re-style the new ticket. */
+.pillContainer.TrainInfo {
+  background: none;
+  background-image: none !important;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
 }

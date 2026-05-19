@@ -5,7 +5,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import 'leaflet/dist/leaflet.css';
 import '../styles/TrainLocation.css';
 
-// Helper to recenter the map when coords change
+// Recenter the map when coords change (train picks a new position).
 const RecenterOnPosition = ({ lat, lon }) => {
   const map = useMap();
   useEffect(() => {
@@ -16,47 +16,77 @@ const RecenterOnPosition = ({ lat, lon }) => {
   return null;
 };
 
-const TrainLocation = ({ lat, lon, trainName = 'Train' }) => {
-  // Create the icon unconditionally so Hooks order is stable
-  // Create a custom NJ Transit themed circle with a train glyph
-  const trainIcon = useMemo(
-    () =>
-      L.divIcon({
-        className: 'njtTrainIcon',
-        html:
-          '<div class="njt-train-circle"><i class="fa-solid fa-train"></i></div>',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-        popupAnchor: [0, -18],
-      }),
-    []
-  );
+// Carto Positron — minimalist light-gray base, faint dashed rail
+// tracks, small POI labels. OpenRailwayMap layered on top brings back
+// station names; we render at zoom 13 (ORM uses smaller label glyphs
+// at this zoom — at 14+ it goes "you're standing here" bold) and at
+// reduced opacity so labels feel like annotations, not UI chrome.
+// Per the OSM wiki, ORM tiles are served from tiles.openrailwaymap.org
+// with NO `{s}` subdomain; tile size 512, max zoom 19.
+const BASE_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const RAILWAY_TILE_URL = 'https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png';
+
+const TrainLocation = ({ lat, lon, trainName = 'Train', backColor, foreColor, trainNumber }) => {
+  const trainIcon = useMemo(() => {
+    const pin = backColor || 'var(--njt-orange)';
+    const fore = foreColor || '#fff';
+    return L.divIcon({
+      className: 'njtTrainIcon',
+      html: `<div class="njt-train-circle" style="background:${pin};color:${fore}"><i class="fa-solid fa-train"></i></div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      popupAnchor: [0, -18],
+    });
+  }, [backColor, foreColor]);
 
   const latitude = typeof lat === 'string' ? parseFloat(lat) : lat;
   const longitude = typeof lon === 'string' ? parseFloat(lon) : lon;
-
   const isValid = Number.isFinite(latitude) && Number.isFinite(longitude);
   if (!isValid) return null;
 
   const center = [latitude, longitude];
+  const coordLabel = `${latitude.toFixed(3)}° N · ${Math.abs(longitude).toFixed(3)}° W`;
 
   return (
-    <div className="pillContainer TrainLocation">
-      <h2 style={{ textAlign: 'left', marginTop: 0 }}>Location</h2>
+    <section className="locationCard TrainLocation">
+      <header className="locationHead">
+        <span className="locationTitle">Location</span>
+        <span className="locationCoords">{coordLabel}</span>
+      </header>
       <div className="mapWrapper">
-        <MapContainer center={center} zoom={13} scrollWheelZoom={false} className="mapContainer">
+        <MapContainer
+          center={center}
+          /* Zoom 13 reads "this neighborhood" — ORM renders smaller
+             station labels at 13 than at 14+, and the wider geographic
+             area pulls dense terminals like Hoboken into context. */
+          zoom={13}
+          scrollWheelZoom={false}
+          fadeAnimation={false}
+          className="mapContainer locationMap"
+        >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &middot; <a href="https://carto.com/attributions">Carto</a>'
+            url={BASE_TILE_URL}
+            maxZoom={19}
+          />
+          <TileLayer
+            attribution='Rail: <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> (CC-BY-SA)'
+            url={RAILWAY_TILE_URL}
+            tileSize={512}
+            zoomOffset={-1}
+            maxZoom={19}
+            opacity={0.45}
           />
           <Marker position={center} icon={trainIcon}>
-            <Popup>{trainName}</Popup>
+            <Popup>{trainName}{trainNumber ? ` · ${trainNumber}` : ''}</Popup>
           </Marker>
           <RecenterOnPosition lat={latitude} lon={longitude} />
         </MapContainer>
       </div>
-      <div className="mapDisclaimer">Reported location may be delayed or approximate.</div>
-    </div>
+      <div className="mapDisclaimer locationFoot">
+        Reported location may be delayed or approximate.
+      </div>
+    </section>
   );
 };
 

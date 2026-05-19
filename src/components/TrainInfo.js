@@ -1,13 +1,16 @@
 import React from 'react';
-import { FaRegCopy } from 'react-icons/fa';
 import lineNames from '../data/lineNames.json';
-import '../styles/TrainInfo.css'; // Updated import path
+import '../styles/TrainInfo.css';
 
+// Click anywhere on the ticket → copy a share message. Replaces the
+// old per-line-pill copy affordance; the design omits the explicit copy
+// icon but the convenience of "tap the card to share where I am" is too
+// good to lose. We surface it via a tooltip on the line stamp.
 const copyToClipboard = (trainNumber) => {
   const message = `I am on Train ${trainNumber}. You can see my train status at https://ontrack-551821400291.us-central1.run.app/`;
-  navigator.clipboard.writeText(message).then(() => {
-    // No need to set state for hover effect
-  });
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard.writeText(message).catch(() => {});
+  }
 };
 
 const TrainInfo = ({
@@ -19,53 +22,74 @@ const TrainInfo = ({
   getMinutesUntilArrival,
   getStopStatus,
 }) => {
-  const trainInfoClass = 'TrainInfo';
   const isLeaving = nextStop && new Date() < new Date(trainData.STOPS[0]?.TIME);
+  const minutes = nextStop ? getMinutesUntilArrival(nextStop?.TIME) : null;
   const statusText = allStopsCancelled ? 'Cancelled' : getStopStatus(nextStop);
+  const pillClass =
+    statusText === 'Late' ? 'late' : statusText === 'Cancelled' ? 'cancelled' : 'ontime';
+  const lineColor = trainData.BACKCOLOR || '#f0803c';
+  const lineName = lineNames[trainData.LINECODE] || '';
+  const lineCode = trainData.LINECODE;
+
+  // Compute lateness in whole minutes for the pill label.
+  let lateMin = 0;
+  if (statusText === 'Late' && nextStop?.TIME && nextStop?.DEP_TIME) {
+    const a = new Date(Date.parse(nextStop.TIME));
+    const d = new Date(Date.parse(nextStop.DEP_TIME));
+    if (!isNaN(a) && !isNaN(d)) lateMin = Math.max(0, Math.round((a - d) / 60000));
+  }
+
+  const lineStampSrc = lineCode
+    ? `${process.env.PUBLIC_URL || ''}/assets/${lineCode}.svg`
+    : null;
 
   return (
-    <div 
-      className={`pillContainer ${trainInfoClass}`}
-      style={{ backgroundImage: `url(https://raw.githubusercontent.com/Anantesh-Mohapatra/OnTrack-Docker/c82ee99803b71e07ee4a7106b71c134452e1247e/public/assets/${trainData.LINECODE}.svg)`, backgroundPosition: 'calc(100% - 10px) calc(100% - 10px)', backgroundSize: '75px 75px', backgroundRepeat: 'no-repeat' }}
+    <div
+      className="ticket TrainInfo"
+      style={{ '--line-color': lineColor, '--line-fore': trainData.FORECOLOR || '#fff' }}
       onClick={() => copyToClipboard(trainData.TRAIN_ID)}
+      title="Click to copy a share message"
     >
-      <div className="trainInfoHeader">
-        <h2>To {lastStop?.STATIONNAME || 'N/A'}</h2>
-      </div>
+      {lineStampSrc && (
+        <img className="lineStamp" src={lineStampSrc} alt="" aria-hidden="true" />
+      )}
 
-      {isTrainActive ? (
-        <div className="activeInfo">
-          {isLeaving ? (
-            <>Leaves <strong>{nextStop?.STATIONNAME || 'N/A'}</strong> in {getMinutesUntilArrival(nextStop?.TIME)} minutes.</>
+      <div className="ticketBody">
+        <div className="destination">
+          <h2 className="name">
+            <span className="toLabel">To</span> {lastStop?.STATIONNAME || 'N/A'}
+          </h2>
+
+          {isTrainActive && nextStop ? (
+            <p className="next">
+              {isLeaving ? 'Leaving' : 'Reaching'} <strong>{nextStop?.STATIONNAME || 'N/A'}</strong>
+              {minutes !== 'N/A' && minutes != null ? (
+                <>
+                  {' '}in <span className="mins">{minutes}</span>{' '}
+                  <span className="minsLabel">{minutes === 1 ? 'minute' : 'minutes'}</span>
+                </>
+              ) : null}
+            </p>
           ) : (
-            <>Reaching <strong>{nextStop?.STATIONNAME || 'N/A'}</strong> in {getMinutesUntilArrival(nextStop?.TIME)} minutes.</>
+            <p className="next inactiveInfo">
+              {allStopsCancelled
+                ? 'This train has been cancelled.'
+                : `This train has concluded its journey at ${lastStop?.STATIONNAME || 'N/A'}.`}
+            </p>
           )}
         </div>
-      ) : (
-        <div className="inactiveInfo">
-          {allStopsCancelled
-            ? 'This train has been cancelled.'
-            : `This train has concluded its journey at ${lastStop?.STATIONNAME || 'N/A'}.`}
-        </div>
-      )}
+      </div>
 
-      {isTrainActive && (
-        <div className="trainInfoStatusPill" style={{ backgroundColor: 'rgba(160, 160, 160, 0.8)' }}>
-          <span className="trainInfoStatusText" style={{ textAlign: 'left' }}>
-            {statusText}
+      <div className="ticketFoot">
+        <span className="lineName">{lineName}</span>
+        {isTrainActive && (
+          <span className={`statusPill ${pillClass}`}>
+            <span className="dot" />
+            {statusText === 'Late' && lateMin > 0
+              ? `Late · ${lateMin} min`
+              : statusText}
           </span>
-          <span
-            className="trainInfoStatusCircle"
-            style={{ backgroundColor: statusText === 'On Time' ? '#90EE90' : '#FF4500' }}
-          ></span>
-        </div>
-      )}
-
-      <div className="linePill" style={{ borderColor: trainData.BACKCOLOR, position: 'relative' }}>
-        <span className="lineText">{lineNames[trainData.LINECODE] || 'N/A'}</span>
-        <div className="lineCircle" style={{ backgroundColor: trainData.BACKCOLOR }}>
-          <FaRegCopy className="copyIcon" />
-        </div>
+        )}
       </div>
     </div>
   );

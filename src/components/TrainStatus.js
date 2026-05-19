@@ -303,7 +303,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       <form onSubmit={handleSubmit} className="form">
         <input
           type="text"
-          placeholder="Enter Train Number"
+          inputMode="numeric"
+          placeholder="Enter train number"
           value={showTrainPrefix && trainNumber && !isEditing ? `Train ${trainNumber}` : trainNumber}
           onChange={handleChange}
           onFocus={handleFocus}
@@ -315,7 +316,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
           className={`button ${!trainNumber ? 'buttonDisabled' : ''}`}
           disabled={!trainNumber}
         >
-          {loading ? <div className="loadingCircle"></div> : 'Check Status'}
+          {loading ? <div className="loadingCircle"></div> : 'Check'}
         </button>
       </form>
       
@@ -332,6 +333,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             getStopStatus={getStopStatus}
           />
           <TrainSchedule
+            key={`schedule-${trainData.TRAIN_ID}`}
             trainData={trainData}
             isTrainActive={isTrainActive}
             nextStop={nextStop}
@@ -339,7 +341,14 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             getStopStatus={getStopStatus}
           />
           {coords.has && (
-            <TrainLocation lat={coords.lat} lon={coords.lon} trainName={`Train ${trainData.TRAIN_ID}`} />
+            <TrainLocation
+              lat={coords.lat}
+              lon={coords.lon}
+              trainName={`Train ${trainData.TRAIN_ID}`}
+              trainNumber={trainData.TRAIN_ID}
+              backColor={trainData.BACKCOLOR}
+              foreColor={trainData.FORECOLOR}
+            />
           )}
         </div>
       )}

@@ -1,137 +1,236 @@
-.helpButton {
+/* ───────────────────────────────────────────────────────────────────
+   OnTrack — Concourse aesthetic.
+   Design tokens, page chrome, architrave, theme toggle, help button.
+   Component-specific styles live in src/styles/*.css and reuse these
+   variables via var(--…).
+   ─────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Light — warm limestone, station marble */
+  --bg:        #f3ede2;
+  --bg-soft:   #ede5d6;
+  --paper:     #fbf7ee;
+  --ink:       #1a1812;
+  --ink-soft:  #5c5851;
+  --rule:      #d6cdb9;
+  --rule-soft: #e7dfcb;
+
+  /* NJT accents — used sparingly */
+  --njt-orange:  #f0803c;
+  --njt-magenta: #b31b90;
+  --njt-blue:    #014c97;
+
+  /* Solari schedule board (light) */
+  --board:       #fbf7ee;
+  --board-edge:  #ede5d6;
+  --board-rule:  #e7dfcb;
+  --amber:       #8a5e10;
+  --amber-soft:  #6a4a0d;
+  --board-white: #1f1a10;
+  --board-green: #1f6a3a;
+  --board-red:   #a93c1f;
+  --board-dim:   #b0a487;
+
+  --shadow-card: 0 1px 0 #fff inset, 0 10px 32px -18px rgba(40, 30, 15, 0.35);
+}
+
+body.dark,
+body.dark-mode,
+body.dark-analog {
+  --bg:        #0e0f12;
+  --bg-soft:   #161821;
+  --paper:     #181a1f;
+  --ink:       #ece6d6;
+  --ink-soft:  #989286;
+  --rule:      #2a2c33;
+  --rule-soft: #1f2127;
+
+  --board:       #0c0e11;
+  --board-edge:  #1b1d22;
+  --board-rule:  #23252b;
+  --amber:       #f3c14a;
+  --amber-soft:  #b3893f;
+  --board-white: #f5efe0;
+  --board-green: #7ddf94;
+  --board-red:   #ff6e54;
+  --board-dim:   #8a8576;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 36px -18px rgba(0, 0, 0, 0.7);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-family: "DM Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+button { font-family: inherit; }
+
+/* Soft architectural backdrop — vaulted-ceiling vignette */
+body::before {
+  content: "";
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #f0803d;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5em;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 255, 255, 0.5), transparent 65%),
+    radial-gradient(ellipse 100% 60% at 50% 110%, rgba(0, 0, 0, 0.06), transparent 60%);
+  z-index: 0;
+}
+body.dark::before,
+body.dark-mode::before,
+body.dark-analog::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 238, 200, 0.04), transparent 65%),
+    radial-gradient(ellipse 100% 60% at 50% 110%, rgba(0, 0, 0, 0.5), transparent 60%);
 }
 
-.helpButton:hover {
-  background-color: #b31b90;
-}
-
-button {
-  transition: background-color 0.3s;
-}
-
-.helpCloseButton {
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #f0803d;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.helpCloseButton:hover {
-  background-color: #b31b90;
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
 }
 
 .App {
   text-align: center;
-  color: #000; /* Default text color for light mode */
+  color: var(--ink);
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* ── Architrave header ─────────────────────────────────────────── */
+.architrave {
+  text-align: center;
+  padding-top: 8px;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  position: relative;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.container {
-  padding: 20px;
-  margin: 0 auto;
-  max-width: 800px;
-}
-
-.titleContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+.wordmark {
+  display: inline-flex;
+  /* Baseline alignment so the chevrons sit on the title's baseline
+     instead of being centered against the line-box (which puts them
+     past the baseline since "OnTrack" has no descenders). */
+  align-items: baseline;
+  gap: 18px;
+  line-height: 1;
 }
 
 .title {
-  font-family: Arial, sans-serif;
+  font-family: "Courier Prime", "Courier New", Courier, monospace;
   font-style: italic;
-  font-size: 2em;
-  margin: 0 10px;
-  color: #000; /* Default text color for light mode */
+  font-weight: 700;
+  font-size: clamp(40px, 6.4vw, 64px);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
 }
 
-.strip {
-  width: 50px;
-  height: 15px;
-  background: linear-gradient(45deg, #f0803d, #b31b90, #014c97);
-  transform: skewX(-20deg);
+.chevrons {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  /* Pin to the title's font + size so `1cap` on the chev resolves
+     against Courier Prime's metrics (its real cap height), not the
+     body font's. Inheriting from .wordmark would give us DM Sans,
+     whose cap height is ~30% taller and made the chev overshoot. */
+  font-family: "Courier Prime", "Courier New", Courier, monospace;
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(40px, 6.4vw, 64px);
+  line-height: 1;
+  transform: skewX(-22deg);
+  /* Baseline of a flex container = first item's baseline. Chev items
+     are block-level with no text, so their baseline is the bottom
+     edge — which means parent baseline alignment lands the chev bottom
+     exactly on the title's baseline. */
+}
+.chevrons.left { transform: skewX(-22deg) translateX(2px); }
+
+.chev {
+  /* `1cap` = the current font's cap height. Pairs with baseline
+     alignment so each chev spans precisely cap-top → baseline, the
+     same vertical extent as the visible "OnTrack" glyphs.
+     Fallback for browsers without `cap` (Safari < 16.4 etc.) is the
+     0.7em line that gets overridden when `cap` is supported. */
+  width: 0.11em;
+  height: 0.7em;
+  height: 1cap;
+  border-radius: 1px;
+  align-self: baseline;
+}
+.chev.orange  { background: var(--njt-orange);  }
+.chev.magenta { background: var(--njt-magenta); }
+.chev.blue    { background: var(--njt-blue);    }
+
+/* Legacy stripe class kept inert in case other code still references it */
+.titleContainer, .strip { display: none; }
+
+/* ── Utility dock ──────────────────────────────────────────────────
+   Theme toggle + help button share one bottom-right pill with a thin
+   divider between them. Top of the page stays pure brand; content
+   flows under the dock so it doesn't fight for real estate, especially
+   on mobile. */
+.utilityDock {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  align-items: stretch;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  z-index: 50;
+}
+.dockBtn {
+  width: 40px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 0.15s;
+}
+.dockBtn:hover { background: var(--bg-soft); }
+.dockBtn + .dockBtn { border-left: 1px solid var(--rule); }
+
+.dockBtn.helpButton {
+  /* Times New Roman's "?" reads better at this button size than
+     Newsreader's more ornate serif — and matches the brief style users
+     see before Newsreader loads, so there's no flash either. */
+  font-family: "Times New Roman", Times, serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 20px;
+  /* line-height:1 collapses the text-box to the em-height, so flexbox
+     centers the glyph itself (not a taller line-box with extra leading
+     above/below). Matches how the SVG icons are centered. */
+  line-height: 1;
 }
 
-body.dark-mode {
-  background-color: #000000; /* Match black background color */
-  color: #ffffff;
+/* Legacy single-button styles — no-op when the buttons live inside the
+   dock, kept inert so any stray reference doesn't fight the pill. */
+.themeToggle:not(.dockBtn),
+.helpButton:not(.dockBtn) {
+  position: static;
+  box-shadow: none;
 }
 
-body.dark-mode .App {
-  background-color: #000000; /* Black background */
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-mode .title {
-  color: #f9f9f9; /* Light text */
-}
-
-body.dark-analog {
-  background-color: #111; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
-
-body.dark-analog .App {
-  background-color: #111; /* Darker background */
-  color: #e0e0e0; /* Light grey text */
-}
-
-body.dark-analog .title {
-  color: #e0e0e0; /* Light grey text */
-  font-family: 'Courier New', Courier, monospace; /* Analog font */
-}
+@keyframes spin { to { transform: rotate(360deg); } }
