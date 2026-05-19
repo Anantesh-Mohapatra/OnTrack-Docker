@@ -22,15 +22,21 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, gtfs: gtfs.status() });
 });
 
-// 5-minute TTL cache for getVehicleData. The vehicle list is identical for
-// every user and only changes on the order of minutes, so a short server-side
-// cache protects the NJ Transit API key quota without affecting UX.
-const vehicleCache = { data: null, expiresAt: 0 };
-const VEHICLE_TTL_MS = 5 * 60 * 1000;
+// Per-caller freshness cache for getVehicleData. The cache stores when the
+// data was fetched; each caller declares its staleness tolerance via
+// ?maxAge=<seconds>. TrainStatus needs ~30s for an accurate map marker;
+// PopularTrains is happy with the 5-minute default since it only reads
+// TRAIN_LINE / ID, not GPS. Pattern mirrors HTTP Cache-Control: max-age.
+const vehicleCache = { data: null, fetchedAt: 0 };
+const VEHICLE_DEFAULT_MAX_AGE_MS = 5 * 60 * 1000;
 
-app.get("/api/vehicle-data", async (_req, res) => {
+app.get("/api/vehicle-data", async (req, res) => {
   const now = Date.now();
-  if (vehicleCache.data && vehicleCache.expiresAt > now) {
+  const requested = parseInt(req.query.maxAge, 10);
+  const maxAgeMs = Number.isFinite(requested) && requested > 0
+    ? requested * 1000
+    : VEHICLE_DEFAULT_MAX_AGE_MS;
+  if (vehicleCache.data && now - vehicleCache.fetchedAt < maxAgeMs) {
     return res.json(vehicleCache.data);
   }
   const token = process.env.REACT_APP_NJTRANSIT_API_KEY;
@@ -46,7 +52,7 @@ app.get("/api/vehicle-data", async (_req, res) => {
       try { payload = JSON.parse(payload); } catch (_) {}
     }
     vehicleCache.data = payload;
-    vehicleCache.expiresAt = now + VEHICLE_TTL_MS;
+    vehicleCache.fetchedAt = now;
     return res.json(payload);
   } catch (err) {
     console.error("/api/vehicle-data error:", err?.message || err);

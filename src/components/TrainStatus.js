@@ -8,6 +8,7 @@ import TrainLocation from './TrainLocation';
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
   const [trainData, setTrainData] = useState(null); // Stores the train information from the API
+  const [vehicleList, setVehicleList] = useState(null); // Fleet snapshot from /api/vehicle-data — source of truth for GPS
   const [loading, setLoading] = useState(false); // Shows if the data is currently being fetched
   const [error, setError] = useState(''); // Stores error messages
   const [isTrainActive, setIsTrainActive] = useState(true); // To track if the train is active
@@ -33,13 +34,26 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     setLoading(true);
     setError('');
     setTrainData(null);
+    setVehicleList(null);
 
     const startTime = now;
 
     try {
       const base = await getBackendBase();
-      const url = `${base}/api/train-data?train=${encodeURIComponent(number)}`;
-      const response = await fetch(url);
+      // Fire both endpoints in parallel — vehicle-data has the real GPS we need
+      // for TrainLocation, and pulling it alongside the stop list avoids a
+      // second round-trip after the user already sees the schedule.
+      // Wrap vehicle-data so its failure never sinks the whole lookup; we just
+      // hide the map in that case.
+      const [response, vehicleData] = await Promise.all([
+        fetch(`${base}/api/train-data?train=${encodeURIComponent(number)}`),
+        // maxAge=30 — the map marker needs to reflect ~recent position; PopularTrains
+        // omits the param and gets the server's 5-minute default since it only needs
+        // line/ID metadata.
+        fetch(`${base}/api/vehicle-data?maxAge=30`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
       if (!response.ok) {
         throw new Error('Failed to fetch train data');
       }
@@ -58,6 +72,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       }
 
       setTrainData(data);
+      setVehicleList(Array.isArray(vehicleData) ? vehicleData : null);
       setShowTrainPrefix(true);
       setIsEditing(false);
     } catch (err) {
@@ -241,59 +256,32 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return `${hours}:${minutes}:${seconds} ${ampm}`; // Returns a string with the formatted time
   };
 
-  // Derive coordinates from trainData and log changes clearly without spamming
+  // Derive coordinates by looking up the train in the vehicle-data fleet snapshot.
+  // getVehicleData is NJT's authoritative GPS source (what their own app uses);
+  // getTrainStopList's CAPACITY[].LATITUDE often returns "0.0" when there's no fix,
+  // which previously rendered the map off the coast of Africa.
   const coords = useMemo(() => {
-    if (!trainData) return { has: false, lat: null, lon: null, source: null };
-
-    // 1) Try common top-level fields first
-    const pickFirst = (arr) => arr.find((v) => v !== undefined && v !== null && v !== '');
-    const tlLat = pickFirst([
-      trainData?.LAT,
-      trainData?.LATITUDE,
-      trainData?.GPS_LAT,
-      trainData?.GPSLAT,
-      trainData?.Latitude,
-    ]);
-    const tlLon = pickFirst([
-      trainData?.LON,
-      trainData?.LONGITUDE,
-      trainData?.GPS_LON,
-      trainData?.GPSLON,
-      trainData?.Longitude,
-      trainData?.LNG,
-    ]);
-    let latNum = typeof tlLat === 'string' ? parseFloat(tlLat) : tlLat;
-    let lonNum = typeof tlLon === 'string' ? parseFloat(tlLon) : tlLon;
-    if (Number.isFinite(latNum) && Number.isFinite(lonNum)) {
-      return { has: true, lat: latNum, lon: lonNum, source: 'top-level' };
-    }
-
-    // 2) Fallback: look for coordinates inside CAPACITY[] entries
-    const cap = Array.isArray(trainData?.CAPACITY) ? trainData.CAPACITY : [];
-    for (let i = 0; i < cap.length; i++) {
-      const c = cap[i] || {};
-      const cLat = pickFirst([c.LAT, c.LATITUDE, c.GPS_LAT, c.GPSLAT, c.Latitude]);
-      const cLon = pickFirst([c.LON, c.LONGITUDE, c.GPS_LON, c.GPSLON, c.Longitude, c.LNG]);
-      latNum = typeof cLat === 'string' ? parseFloat(cLat) : cLat;
-      lonNum = typeof cLon === 'string' ? parseFloat(cLon) : cLon;
-      if (Number.isFinite(latNum) && Number.isFinite(lonNum)) {
-        return { has: true, lat: latNum, lon: lonNum, source: `capacity[${i}]` };
-      }
-    }
-
-    return { has: false, lat: null, lon: null, source: null };
-  }, [trainData]);
+    const id = trainData?.TRAIN_ID;
+    if (!id || !Array.isArray(vehicleList)) return { has: false, lat: null, lon: null };
+    const v = vehicleList.find((x) => String(x?.ID) === String(id));
+    if (!v) return { has: false, lat: null, lon: null };
+    const lat = parseFloat(v.LATITUDE);
+    const lon = parseFloat(v.LONGITUDE);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { has: false, lat: null, lon: null };
+    // Defensive: reject NJT's "no fix" 0,0 placeholder if it ever leaks through here too.
+    if (lat === 0 && lon === 0) return { has: false, lat: null, lon: null };
+    return { has: true, lat, lon };
+  }, [trainData, vehicleList]);
 
   const prevCoordsRef = useRef({ has: false, lat: null, lon: null });
   useEffect(() => {
     const prev = prevCoordsRef.current;
     if (coords.has && (!prev.has || prev.lat !== coords.lat || prev.lon !== coords.lon)) {
-      console.info('TrainLocation: showing map at', { lat: coords.lat, lon: coords.lon, source: coords.source });
+      console.info('TrainLocation: showing map at', { lat: coords.lat, lon: coords.lon });
     } else if (!coords.has && prev.has) {
       console.info('TrainLocation: location data no longer available; hiding map');
     } else if (!coords.has && !prev.has && trainData) {
-      // Log once when we have trainData but no coords
-      console.info('TrainLocation: no coordinates in train data; map hidden');
+      console.info('TrainLocation: no coordinates in vehicle data; map hidden');
     }
     prevCoordsRef.current = coords;
   }, [coords, trainData]);
