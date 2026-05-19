@@ -66,6 +66,21 @@ function buildStore(zipBuffer) {
       direction_id: row.direction_id,
     });
   }
+  // Alias each padded block_id under its leading-zero-stripped form. NJT's
+  // GTFS stores short train numbers zero-padded to 4 digits ("0068" for
+  // Port Jervis #68, "0204" for some Montclair-Boonton runs), but the
+  // realtime API and NJT's own app display them unpadded. Without this,
+  // customizing a slot with an inactive PJL train would 404 even though
+  // its schedule is right here in the feed. Verified empirically: across
+  // all 1434 block_ids no stripped variant collides with an existing key,
+  // so this aliasing is safe — but we still skip on collision just in case
+  // a future feed introduces one.
+  for (const [key, trips] of [...tripsByBlock]) {
+    const stripped = key.replace(/^0+/, "") || "0";
+    if (stripped !== key && !tripsByBlock.has(stripped)) {
+      tripsByBlock.set(stripped, trips);
+    }
+  }
 
   const stopTimesByTrip = new Map();
   for (const row of read("stop_times.txt")) {
