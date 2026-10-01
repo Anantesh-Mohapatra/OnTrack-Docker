@@ -26,7 +26,7 @@ const RecenterOnPosition = ({ lat, lon }) => {
 const BASE_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const RAILWAY_TILE_URL = 'https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png';
 
-const TrainLocation = ({ lat, lon, trainName = 'Train', backColor, foreColor, trainNumber }) => {
+const TrainLocation = ({ lat, lon, trainName = 'Train', backColor, foreColor, trainNumber, note }) => {
   const trainIcon = useMemo(() => {
     const pin = backColor || 'var(--njt-orange)';
     const fore = foreColor || '#fff';
@@ -84,7 +84,7 @@ const TrainLocation = ({ lat, lon, trainName = 'Train', backColor, foreColor, tr
         </MapContainer>
       </div>
       <div className="mapDisclaimer locationFoot">
-        Reported location may be delayed or approximate.
+        {note ? `${note} · ` : ''}Reported location may be delayed or approximate.
       </div>
     </section>
   );

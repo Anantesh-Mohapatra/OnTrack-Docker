@@ -13,6 +13,7 @@ const axios = require("axios");
 const fs = require("fs");
 const crypto = require("crypto");
 const gtfs = require("./gtfs");
+const gtfsrt = require("./gtfsrt");
 
 // Multi-leg payload capture. NJT's getTrainStopList sometimes bundles a
 // connecting shuttle's stops (e.g. Bay Head shuttle for NJCL) into the
@@ -207,6 +208,25 @@ app.get("/api/scheduled-stops", (req, res) => {
   const result = gtfs.getScheduledStops(train, date);
   if (!result) return res.status(404).json({ error: "Train not scheduled on that date" });
   return res.json(result);
+});
+
+// Everything the map needs for one train: the latest GTFS-RT GPS fix (may be
+// stale — the frontend gates on its timestamp) and the scheduled origin
+// station (where we pin trains that haven't departed). Either can be null;
+// a GTFS-RT outage just means no fix, never a failed request.
+// Query: ?train=3886
+app.get("/api/train-position", async (req, res) => {
+  const train = (req.query.train || "").toString().trim();
+  if (!train) return res.status(400).json({ error: "Missing required query param: train" });
+  let fix = null;
+  try {
+    fix = await gtfsrt.getPosition(train);
+  } catch (err) {
+    console.error("/api/train-position error:", err?.message || err);
+  }
+  const date = fix?.startDate || todayYYYYMMDD();
+  const origin = gtfs.isReady() ? gtfs.getOrigin(train, date) : null;
+  return res.json({ fix, origin });
 });
 
 function todayYYYYMMDD() {

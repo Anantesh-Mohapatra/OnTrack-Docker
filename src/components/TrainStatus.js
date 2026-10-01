@@ -6,10 +6,14 @@ import TrainSchedule from './TrainSchedule';
 import '../styles/TrainStatus.css'; // Updated import path
 import TrainLocation from './TrainLocation';
 
+// Oldest GPS fix we'll still put on the map. See the coords rule below.
+const GPS_MAX_AGE_MS = 5 * 60 * 1000;
+
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
   const [trainData, setTrainData] = useState(null); // Stores the train information from the API
-  const [vehicleList, setVehicleList] = useState(null); // Fleet snapshot from /api/vehicle-data — source of truth for GPS
+  const [vehicleList, setVehicleList] = useState(null); // Fleet snapshot from /api/vehicle-data — used for its NEXT_STOP hint (its lat/lon is just the next station's)
+  const [position, setPosition] = useState(null); // { fix, origin } from /api/train-position — drives the map
   const [stationList, setStationList] = useState([]); // STATION_14CHAR ↔ STATION_2CHAR ↔ STATIONNAME crosswalk for NEXT_STOP override
   const [loading, setLoading] = useState(false); // Shows if the data is currently being fetched
   const [error, setError] = useState(''); // Stores error messages
@@ -37,22 +41,25 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     setError('');
     setTrainData(null);
     setVehicleList(null);
+    setPosition(null);
 
     const startTime = now;
 
     try {
       const base = await getBackendBase();
-      // Fire both endpoints in parallel — vehicle-data has the real GPS we need
-      // for TrainLocation, and pulling it alongside the stop list avoids a
-      // second round-trip after the user already sees the schedule.
-      // Wrap vehicle-data so its failure never sinks the whole lookup; we just
-      // hide the map in that case.
-      const [response, vehicleData] = await Promise.all([
+      // Fire all endpoints in parallel. vehicle-data supplies the NEXT_STOP
+      // hint; train-position supplies the map's GPS fix and origin station.
+      // Both are wrapped so their failure never sinks the whole lookup — we
+      // just skip the override / hide the map in that case.
+      const [response, vehicleData, positionData] = await Promise.all([
         fetch(`${base}/api/train-data?train=${encodeURIComponent(number)}`),
         // maxAge=30 — the map marker needs to reflect ~recent position; PopularTrains
         // omits the param and gets the server's 5-minute default since it only needs
         // line/ID metadata.
         fetch(`${base}/api/vehicle-data?maxAge=30`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch(`${base}/api/train-position?train=${encodeURIComponent(number)}`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
@@ -75,6 +82,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
 
       setTrainData(data);
       setVehicleList(Array.isArray(vehicleData) ? vehicleData : null);
+      setPosition(positionData);
       setShowTrainPrefix(true);
       setIsEditing(false);
     } catch (err) {
@@ -315,32 +323,44 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return `${hours}:${minutes}:${seconds} ${ampm}`; // Returns a string with the formatted time
   };
 
-  // Derive coordinates by looking up the train in the vehicle-data fleet snapshot.
-  // getVehicleData is NJT's authoritative GPS source (what their own app uses);
-  // getTrainStopList's CAPACITY[].LATITUDE often returns "0.0" when there's no fix,
-  // which previously rendered the map off the coast of Africa.
+  // The one rule for where (and whether) the map shows the train:
+  //   1. Fully cancelled            → no map.
+  //   2. Hasn't left its first stop → pin at the scheduled origin station.
+  //   3. GPS fix ≤ 5 min old        → pin at the fix.
+  //   4. Otherwise                  → no map.
+  // Terminated trains need no special case: their last fix is at the
+  // terminal and ages out of rule 3 within 5 minutes. The age gate also
+  // rejects the leftover fix GTFS-RT keeps from a train's previous run.
+  // 5 min because NJT updates each train's fix only every ~1–5 minutes.
   const coords = useMemo(() => {
-    const id = trainData?.TRAIN_ID;
-    if (!id || !Array.isArray(vehicleList)) return { has: false, lat: null, lon: null };
-    const v = vehicleList.find((x) => String(x?.ID) === String(id));
-    if (!v) return { has: false, lat: null, lon: null };
-    const lat = parseFloat(v.LATITUDE);
-    const lon = parseFloat(v.LONGITUDE);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { has: false, lat: null, lon: null };
-    // Defensive: reject NJT's "no fix" 0,0 placeholder if it ever leaks through here too.
-    if (lat === 0 && lon === 0) return { has: false, lat: null, lon: null };
-    return { has: true, lat, lon };
-  }, [trainData, vehicleList]);
+    const none = { has: false, lat: null, lon: null, note: null };
+    const stops = correctedTrainData?.STOPS;
+    if (!Array.isArray(stops) || !stops.length || allStopsCancelled) return none;
+
+    const hasDeparted = stops.some((s) => s.DEPARTED === 'YES');
+    if (!hasDeparted) {
+      const origin = position?.origin;
+      if (!origin) return none;
+      return { has: true, lat: origin.lat, lon: origin.lon, note: 'Not departed yet · shown at its first stop' };
+    }
+
+    const fix = position?.fix;
+    const ageMs = fix ? Date.now() - fix.timestamp : Infinity;
+    if (!(ageMs <= GPS_MAX_AGE_MS)) return none;
+    const ageMin = Math.max(0, Math.round(ageMs / 60000));
+    const note = ageMin === 0 ? 'GPS updated just now' : `GPS updated ${ageMin} min ago`;
+    return { has: true, lat: fix.lat, lon: fix.lon, note };
+  }, [correctedTrainData, allStopsCancelled, position]);
 
   const prevCoordsRef = useRef({ has: false, lat: null, lon: null });
   useEffect(() => {
     const prev = prevCoordsRef.current;
     if (coords.has && (!prev.has || prev.lat !== coords.lat || prev.lon !== coords.lon)) {
-      console.info('TrainLocation: showing map at', { lat: coords.lat, lon: coords.lon });
+      console.info('TrainLocation: showing map at', { lat: coords.lat, lon: coords.lon, note: coords.note });
     } else if (!coords.has && prev.has) {
       console.info('TrainLocation: location data no longer available; hiding map');
     } else if (!coords.has && !prev.has && trainData) {
-      console.info('TrainLocation: no coordinates in vehicle data; map hidden');
+      console.info('TrainLocation: no fresh GPS fix or origin; map hidden');
     }
     prevCoordsRef.current = coords;
   }, [coords, trainData]);
@@ -395,6 +415,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
               trainNumber={trainData.TRAIN_ID}
               backColor={trainData.BACKCOLOR}
               foreColor={trainData.FORECOLOR}
+              note={coords.note}
             />
           )}
         </div>

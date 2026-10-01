@@ -1,9 +1,11 @@
-// GTFS loader for PopularTrains customization.
+// GTFS loader for PopularTrains customization and the map's origin pin.
 //
 // Downloads NJ Transit's rail GTFS static feed and keeps it in memory so we
 // can answer "what stops does train N make on date D" for any train — active
 // or not. The rest of the app keeps using the realtime `getTrainStopList`
-// endpoint; GTFS is only consulted by PopularTrains.
+// endpoint; GTFS is only consulted by PopularTrains and by
+// /api/train-position (origin station coordinates for trains that haven't
+// departed yet).
 //
 // Refresh model: fetch on startup, then once every 24h via setInterval.
 // Conditional GET (If-None-Match / If-Modified-Since) makes the steady-state
@@ -28,7 +30,7 @@ const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 let store = {
   tripsByBlock: new Map(),    // block_id (train number) -> [trip]
   stopTimesByTrip: new Map(), // trip_id -> [stop_time] (sorted by stop_sequence)
-  stops: new Map(),           // stop_id -> { name }
+  stops: new Map(),           // stop_id -> { name, lat, lon }
   routes: new Map(),          // route_id -> { shortName, longName, color }
   datesByService: new Map(),  // service_id -> Set<YYYYMMDD>
   etag: null,
@@ -99,7 +101,11 @@ function buildStore(zipBuffer) {
 
   const stops = new Map();
   for (const row of read("stops.txt")) {
-    stops.set(row.stop_id, { name: row.stop_name });
+    stops.set(row.stop_id, {
+      name: row.stop_name,
+      lat: Number(row.stop_lat),
+      lon: Number(row.stop_lon),
+    });
   }
 
   const routes = new Map();
@@ -157,10 +163,14 @@ async function refresh({ force = false } = {}) {
 // on the given date (YYYYMMDD). Returns null if the train isn't scheduled that
 // day. If the same block_id has multiple trips active on the same date (very
 // rare), we return the first — callers can refine if that becomes a problem.
-function getScheduledStops(trainNumber, date) {
+function findTrip(trainNumber, date) {
   const trips = store.tripsByBlock.get(String(trainNumber));
   if (!trips) return null;
-  const trip = trips.find((t) => store.datesByService.get(t.service_id)?.has(date));
+  return trips.find((t) => store.datesByService.get(t.service_id)?.has(date)) || null;
+}
+
+function getScheduledStops(trainNumber, date) {
+  const trip = findTrip(trainNumber, date);
   if (!trip) return null;
 
   const times = store.stopTimesByTrip.get(trip.trip_id) || [];
@@ -176,6 +186,18 @@ function getScheduledStops(trainNumber, date) {
     headsign: trip.headsign,
     stops,
   };
+}
+
+// First scheduled stop of train N on date D, with coordinates. Used to pin
+// the map at the origin before the train departs. Returns null if the train
+// isn't scheduled that day or the stop has no usable coordinates.
+function getOrigin(trainNumber, date) {
+  const trip = findTrip(trainNumber, date);
+  if (!trip) return null;
+  const first = (store.stopTimesByTrip.get(trip.trip_id) || [])[0];
+  const stop = first && store.stops.get(first.stop_id);
+  if (!stop || !Number.isFinite(stop.lat) || !Number.isFinite(stop.lon)) return null;
+  return { name: stop.name, lat: stop.lat, lon: stop.lon };
 }
 
 function status() {
@@ -241,4 +263,4 @@ function isReady() {
   return !!store.loadedAt;
 }
 
-module.exports = { startRefreshLoop, refresh, getScheduledStops, status, isReady };
+module.exports = { startRefreshLoop, refresh, getScheduledStops, getOrigin, status, isReady };
