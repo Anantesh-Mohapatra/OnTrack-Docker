@@ -124,6 +124,11 @@ app.get("/api/health", (_req, res) => {
 const vehicleCache = { data: null, fetchedAt: 0 };
 const VEHICLE_DEFAULT_MAX_AGE_MS = 5 * 60 * 1000;
 
+// Station list barely changes — NJT adds/renames stations maybe once a year.
+// 24h cache is conservative; bumping further is safe if traffic justifies it.
+const stationListCache = { data: null, fetchedAt: 0 };
+const STATION_LIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 app.get("/api/vehicle-data", async (req, res) => {
   const now = Date.now();
   const requested = parseInt(req.query.maxAge, 10);
@@ -151,6 +156,37 @@ app.get("/api/vehicle-data", async (req, res) => {
   } catch (err) {
     console.error("/api/vehicle-data error:", err?.message || err);
     return res.status(502).json({ error: "Failed to fetch vehicle data" });
+  }
+});
+
+// Station crosswalk. STATION_14CHAR is the short name vehicle-data uses in
+// NEXT_STOP ("Newark Penn", "Princeton Jct."); STATIONNAME is the long form
+// in train-data STOPS[] ("Newark Penn Station", "Princeton Junction");
+// STATION_2CHAR is the stable code that joins them. Frontend uses this to
+// resolve NEXT_STOP → an index in STOPS without fuzzy matching.
+app.get("/api/station-list", async (_req, res) => {
+  const now = Date.now();
+  if (stationListCache.data && now - stationListCache.fetchedAt < STATION_LIST_MAX_AGE_MS) {
+    return res.json(stationListCache.data);
+  }
+  const token = process.env.REACT_APP_NJTRANSIT_API_KEY;
+  if (!token) return res.status(500).json({ error: "Server is missing NJ Transit API key" });
+  try {
+    const upstream = await axios.post(
+      "https://raildata.njtransit.com/api/TrainData/getStationList",
+      new URLSearchParams({ token }).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 10000 }
+    );
+    let payload = upstream.data;
+    if (typeof payload === "string") {
+      try { payload = JSON.parse(payload); } catch (_) {}
+    }
+    stationListCache.data = payload;
+    stationListCache.fetchedAt = now;
+    return res.json(payload);
+  } catch (err) {
+    console.error("/api/station-list error:", err?.message || err);
+    return res.status(502).json({ error: "Failed to fetch station list" });
   }
 });
 

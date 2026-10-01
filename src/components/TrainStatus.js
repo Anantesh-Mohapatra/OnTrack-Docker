@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getBackendBase } from '../utils/backend';
+import { getStationList, resolveNextStopIndex } from '../utils/stationList';
 import TrainInfo from './TrainInfo';
 import TrainSchedule from './TrainSchedule';
 import '../styles/TrainStatus.css'; // Updated import path
@@ -9,6 +10,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
   const [trainData, setTrainData] = useState(null); // Stores the train information from the API
   const [vehicleList, setVehicleList] = useState(null); // Fleet snapshot from /api/vehicle-data — source of truth for GPS
+  const [stationList, setStationList] = useState([]); // STATION_14CHAR ↔ STATION_2CHAR ↔ STATIONNAME crosswalk for NEXT_STOP override
   const [loading, setLoading] = useState(false); // Shows if the data is currently being fetched
   const [error, setError] = useState(''); // Stores error messages
   const [isTrainActive, setIsTrainActive] = useState(true); // To track if the train is active
@@ -97,6 +99,14 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     }
   }, [initialTrainNumber, fetchTrainStopList]);
 
+  // Load the station crosswalk once per session. Cached at the module level
+  // in stationList.js, so refetching across mounts is a no-op.
+  useEffect(() => {
+    let cancelled = false;
+    getStationList().then((list) => { if (!cancelled) setStationList(list); });
+    return () => { cancelled = true; };
+  }, []);
+
   // API key is no longer fetched in the browser. The backend now holds the key
   // and proxies the request to NJ Transit. This function was intentionally removed.
 
@@ -136,10 +146,58 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     return CANCELLED_STATUSES.has(normalized);
   };
 
+  // Vehicle-data's NEXT_STOP is an independent next-stop signal from the
+  // realtime feed. We use it to validate STOPS[].DEPARTED, which NJT
+  // sometimes ships with stale YES flags from an earlier run of a recycled
+  // train ID (e.g. train 5541 today: Newark Penn DEPARTED:NO but Union and
+  // Roselle Park — future stops — DEPARTED:YES).
+  const nextStopHint = useMemo(() => {
+    const id = trainData?.TRAIN_ID;
+    if (!id || !Array.isArray(vehicleList)) return null;
+    const v = vehicleList.find((x) => String(x?.ID) === String(id));
+    return v?.NEXT_STOP || null;
+  }, [trainData, vehicleList]);
+
+  // Apply the NEXT_STOP override: anything at or after the resolved index
+  // that's marked DEPARTED:YES gets normalized to NO. Downstream consumers
+  // (allStopsCancelled, determineStops, TrainInfo, TrainSchedule) read from
+  // this corrected view; raw trainData is preserved in state for traceability.
+  const correctedTrainData = useMemo(() => {
+    if (!trainData?.STOPS?.length || !nextStopHint || !stationList.length) return trainData;
+    const idx = resolveNextStopIndex(trainData.STOPS, nextStopHint, stationList);
+    if (idx < 0) {
+      // Resolver miss with all inputs present → station list likely stale
+      // (new/renamed station) or NEXT_STOP doesn't appear in this train's
+      // route. Safe to fall back; surface it so we know if it starts happening.
+      console.warn(
+        `NEXT_STOP override skipped for train ${trainData.TRAIN_ID}: ` +
+        `"${nextStopHint}" not resolvable against station list (${stationList.length} entries). ` +
+        `Station list may be stale.`
+      );
+      return trainData;
+    }
+    let overrideCount = 0;
+    const correctedStops = trainData.STOPS.map((s, i) => {
+      if (i >= idx && s.DEPARTED === 'YES') {
+        overrideCount++;
+        return { ...s, DEPARTED: 'NO' };
+      }
+      return s;
+    });
+    if (overrideCount > 0) {
+      console.info(
+        `NEXT_STOP override active for train ${trainData.TRAIN_ID}: ` +
+        `vehicle-data says next stop is "${nextStopHint}" (index ${idx}); ` +
+        `clearing stale DEPARTED:YES on ${overrideCount} stop(s).`
+      );
+    }
+    return { ...trainData, STOPS: correctedStops };
+  }, [trainData, nextStopHint, stationList]);
+
   const allStopsCancelled = useMemo(() => {
-    if (!Array.isArray(trainData?.STOPS) || trainData.STOPS.length === 0) return false;
-    return trainData.STOPS.every(isStopCancelled);
-  }, [trainData]);
+    if (!Array.isArray(correctedTrainData?.STOPS) || correctedTrainData.STOPS.length === 0) return false;
+    return correctedTrainData.STOPS.every(isStopCancelled);
+  }, [correctedTrainData]);
 
   // Determine the next stop and last stop
   const determineStops = useCallback((data) => {
@@ -196,11 +254,12 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
   }, [allStopsCancelled]);
 
   // Keep activity/next-stop state in sync any time new train data arrives or a cancellation status flips.
+  // Reads from correctedTrainData so the NEXT_STOP override flows through to next-stop selection.
   useEffect(() => {
-    if (!trainData) return;
+    if (!correctedTrainData) return;
 
-    determineStops(trainData);
-  }, [determineStops, trainData]);
+    determineStops(correctedTrainData);
+  }, [determineStops, correctedTrainData]);
 
   // Calculate custom status for each stop based on arrival and departure times
   // While the NJ Transit API also provided stop status, this is only updated after the train *leaves* the specific station
@@ -309,10 +368,10 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
       </form>
       
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {!loading && trainData && (
+      {!loading && correctedTrainData && (
         <div>
           <TrainInfo
-            trainData={trainData}
+            trainData={correctedTrainData}
             isTrainActive={isTrainActive}
             nextStop={nextStop}
             lastStop={lastStop}
@@ -321,8 +380,8 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             getStopStatus={getStopStatus}
           />
           <TrainSchedule
-            key={`schedule-${trainData.TRAIN_ID}`}
-            trainData={trainData}
+            key={`schedule-${correctedTrainData.TRAIN_ID}`}
+            trainData={correctedTrainData}
             isTrainActive={isTrainActive}
             nextStop={nextStop}
             formatTime={formatTime}
