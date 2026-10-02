@@ -341,7 +341,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     if (!hasDeparted) {
       const origin = position?.origin;
       if (!origin) return none;
-      return { has: true, lat: origin.lat, lon: origin.lon, note: 'Not departed yet · shown at its first stop' };
+      return { has: true, lat: origin.lat, lon: origin.lon, note: null };
     }
 
     const fix = position?.fix;
