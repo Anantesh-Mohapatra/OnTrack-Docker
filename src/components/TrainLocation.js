@@ -23,7 +23,11 @@ const RecenterOnPosition = ({ lat, lon }) => {
 // reduced opacity so labels feel like annotations, not UI chrome.
 // Per the OSM wiki, ORM tiles are served from tiles.openrailwaymap.org
 // with NO `{s}` subdomain; tile size 512, max zoom 19.
-const BASE_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+// Carto requires a key on raster tiles since Sept 2026 (unkeyed tiles show an
+// "API KEY REQUIRED" watermark). It's a browser-side key, so it's public by
+// design; it's restricted to OnTrack's domains in the Carto dashboard.
+const CARTO_API_KEY = 'cb1_473c_1_3f532308447b139d11b2787b';
+const BASE_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`;
 const RAILWAY_TILE_URL = 'https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png';
 
 const TrainLocation = ({ lat, lon, trainName = 'Train', backColor, foreColor, trainNumber, note }) => {
