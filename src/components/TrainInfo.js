@@ -74,7 +74,7 @@ const TrainInfo = ({
               ) : null}
               {nextTrack ? (
                 <>
-                  {' '}{isLeaving ? 'from' : 'at'} <strong>Track {nextTrack}</strong>
+                  {' '}{isLeaving ? 'from' : 'on'} <strong>Track {nextTrack}</strong>
                 </>
               ) : null}
             </p>
