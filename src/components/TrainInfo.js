@@ -19,11 +19,14 @@ const TrainInfo = ({
   nextStop,
   lastStop,
   allStopsCancelled,
+  tracks = {},
   getMinutesUntilArrival,
   getStopStatus,
 }) => {
   const isLeaving = nextStop && new Date() < new Date(trainData.STOPS[0]?.TIME);
   const minutes = nextStop ? getMinutesUntilArrival(nextStop?.TIME) : null;
+  // Left off entirely until NJT posts a track for this stop.
+  const nextTrack = nextStop ? tracks[nextStop.STATION_2CHAR] : null;
   const statusText = allStopsCancelled ? 'Cancelled' : getStopStatus(nextStop);
   const pillClass =
     statusText === 'Late' ? 'late' : statusText === 'Cancelled' ? 'cancelled' : 'ontime';
@@ -67,6 +70,11 @@ const TrainInfo = ({
                 <>
                   {' '}in <span className="mins">{minutes}</span>{' '}
                   <span className="minsLabel">{minutes === 1 ? 'minute' : 'minutes'}</span>
+                </>
+              ) : null}
+              {nextTrack ? (
+                <>
+                  {' '}{isLeaving ? 'from' : 'at'} <strong>Track {nextTrack}</strong>
                 </>
               ) : null}
             </p>

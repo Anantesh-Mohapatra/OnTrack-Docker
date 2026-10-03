@@ -9,12 +9,17 @@ import TrainLocation from './TrainLocation';
 // Oldest GPS fix we'll still put on the map. See the coords rule below.
 const GPS_MAX_AGE_MS = 5 * 60 * 1000;
 
+// Hubs the backend serves posted tracks for (STATION_2CHAR). Must match
+// TRACK_HUBS in backend/server.js.
+const TRACK_HUBS = new Set(['NY', 'NP', 'ND', 'HB', 'SE', 'TS']);
+
 const TrainStatus = ({ initialTrainNumber = '' }) => {
   const [trainNumber, setTrainNumber] = useState(initialTrainNumber); // Tracks train number, re-renders the component
   const [trainData, setTrainData] = useState(null); // Stores the train information from the API
   const [vehicleList, setVehicleList] = useState(null); // Fleet snapshot from /api/vehicle-data — used for its NEXT_STOP hint (its lat/lon is just the next station's)
   const [position, setPosition] = useState(null); // { fix, origin } from /api/train-position — drives the map
   const [stationList, setStationList] = useState([]); // STATION_14CHAR ↔ STATION_2CHAR ↔ STATIONNAME crosswalk for NEXT_STOP override
+  const [tracks, setTracks] = useState({}); // STATION_2CHAR → posted track for this train, hubs only
   const [loading, setLoading] = useState(false); // Shows if the data is currently being fetched
   const [error, setError] = useState(''); // Stores error messages
   const [isTrainActive, setIsTrainActive] = useState(true); // To track if the train is active
@@ -42,6 +47,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     setTrainData(null);
     setVehicleList(null);
     setPosition(null);
+    setTracks({});
 
     const startTime = now;
 
@@ -201,6 +207,44 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
     }
     return { ...trainData, STOPS: correctedStops };
   }, [trainData, nextStopHint, stationList]);
+
+  // Posted tracks at the hubs this train still has ahead of it. The final
+  // stop is skipped: station boards only list departures, so a terminating
+  // train never has a track there (verified at NY Penn). Fetched once per
+  // lookup, like the rest of the train data.
+  const trackStations = useMemo(() => {
+    const stops = correctedTrainData?.STOPS;
+    if (!Array.isArray(stops)) return '';
+    return stops
+      .slice(0, -1)
+      .filter((s) => s.DEPARTED !== 'YES' && TRACK_HUBS.has(s.STATION_2CHAR))
+      .map((s) => s.STATION_2CHAR)
+      .join(',');
+  }, [correctedTrainData]);
+
+  useEffect(() => {
+    const id = correctedTrainData?.TRAIN_ID;
+    if (!id || !trackStations) return;
+    let cancelled = false;
+    (async () => {
+      const base = await getBackendBase();
+      const results = await Promise.all(
+        trackStations.split(',').map((code) =>
+          fetch(`${base}/api/station-tracks?station=${code}&maxAge=30`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        )
+      );
+      if (cancelled) return;
+      const next = {};
+      for (const r of results) {
+        const track = r?.tracks?.[String(id)];
+        if (track) next[r.station] = track;
+      }
+      setTracks(next);
+    })();
+    return () => { cancelled = true; };
+  }, [correctedTrainData?.TRAIN_ID, trackStations]);
 
   const allStopsCancelled = useMemo(() => {
     if (!Array.isArray(correctedTrainData?.STOPS) || correctedTrainData.STOPS.length === 0) return false;
@@ -396,6 +440,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             nextStop={nextStop}
             lastStop={lastStop}
             allStopsCancelled={allStopsCancelled}
+            tracks={tracks}
             getMinutesUntilArrival={getMinutesUntilArrival}
             getStopStatus={getStopStatus}
           />
@@ -404,6 +449,7 @@ const TrainStatus = ({ initialTrainNumber = '' }) => {
             trainData={correctedTrainData}
             isTrainActive={isTrainActive}
             nextStop={nextStop}
+            tracks={tracks}
             formatTime={formatTime}
             getStopStatus={getStopStatus}
           />

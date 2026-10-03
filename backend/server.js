@@ -191,6 +191,65 @@ app.get("/api/station-list", async (_req, res) => {
   }
 });
 
+// Posted tracks at the major hubs, from each station's departure board
+// (getTrainSchedule). One upstream call covers every train at that hub, so
+// it's cached per station and shared across callers, with ?maxAge like
+// vehicle-data. Hubs only: minor stations are two direction-split tracks,
+// so a track there tells riders nothing, and the whitelist keeps arbitrary
+// station codes from spending our daily quota. Boards list departures
+// only — a train terminating at a hub never gets a track there.
+// Query: ?station=NY&maxAge=30 → { station, tracks: { "3888": "2", ... } }
+const TRACK_HUBS = new Set(["NY", "NP", "ND", "HB", "SE", "TS"]);
+const TRACKS_DEFAULT_MAX_AGE_MS = 60 * 1000;
+const trackCache = new Map(); // station → { tracks, fetchedAt }
+const trackInflight = new Map(); // station → Promise, so concurrent misses share one fetch
+
+async function fetchStationTracks(station, token) {
+  const upstream = await axios.post(
+    "https://raildata.njtransit.com/api/TrainData/getTrainSchedule",
+    new URLSearchParams({ token, station }).toString(),
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 10000 }
+  );
+  let payload = upstream.data;
+  if (typeof payload === "string") payload = JSON.parse(payload);
+  // TRACK is "" until NJT posts it (~10 min out at NY Penn); keep only posted ones.
+  const tracks = {};
+  for (const item of payload?.ITEMS || []) {
+    const id = String(item?.TRAIN_ID || "").trim();
+    const track = String(item?.TRACK || "").trim();
+    if (id && track) tracks[id] = track;
+  }
+  trackCache.set(station, { tracks, fetchedAt: Date.now() });
+  return tracks;
+}
+
+app.get("/api/station-tracks", async (req, res) => {
+  const station = (req.query.station || "").toString().trim().toUpperCase();
+  if (!TRACK_HUBS.has(station)) {
+    return res.status(400).json({ error: "station must be one of " + [...TRACK_HUBS].join(", ") });
+  }
+  const requested = parseInt(req.query.maxAge, 10);
+  const maxAgeMs = Number.isFinite(requested) && requested > 0
+    ? requested * 1000
+    : TRACKS_DEFAULT_MAX_AGE_MS;
+  const cached = trackCache.get(station);
+  if (cached && Date.now() - cached.fetchedAt < maxAgeMs) {
+    return res.json({ station, tracks: cached.tracks });
+  }
+  const token = process.env.REACT_APP_NJTRANSIT_API_KEY;
+  if (!token) return res.status(500).json({ error: "Server is missing NJ Transit API key" });
+  try {
+    if (!trackInflight.has(station)) {
+      trackInflight.set(station, fetchStationTracks(station, token).finally(() => trackInflight.delete(station)));
+    }
+    const tracks = await trackInflight.get(station);
+    return res.json({ station, tracks });
+  } catch (err) {
+    console.error("/api/station-tracks error:", err?.message || err);
+    return res.status(502).json({ error: "Failed to fetch station tracks" });
+  }
+});
+
 // GTFS-backed scheduled stops for one train on a given date. Used only by
 // PopularTrains to populate the customization dropdown — especially for
 // inactive trains where the realtime getTrainStopList returns nothing.

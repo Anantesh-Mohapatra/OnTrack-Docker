@@ -64,6 +64,22 @@
   white-space: nowrap;
   display: inline-block;
 }
+/* Posted track at a hub, beside the station name. Inline rather than a
+   column so it fits on mobile and doesn't leave a column of blanks. */
+.boardRow .station .trackPill {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 4px 7px 3px;
+  border-radius: 5px;
+  background: var(--track-pill-bg);
+  color: var(--track-pill-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: 2px;
+}
 .boardRow .time {
   color: var(--ink);
   font-feature-settings: "tnum";
@@ -130,6 +146,7 @@ body.dark-analog .boardRow.next .station { color: var(--board-white); }
   .boardHead .depCol,
   .boardRow .depCol { display: none; }
   .boardRow { font-size: 14px; }
+  .boardRow .station .trackPill { font-size: 10px; margin-left: 8px; }
 }
 
 /* Neutralize the old table-based schedule styles in case any legacy

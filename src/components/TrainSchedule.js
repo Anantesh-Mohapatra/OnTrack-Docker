@@ -70,7 +70,7 @@ const fmtShort = (time) => {
   return `${h}:${m} ${ap}`;
 };
 
-const TrainSchedule = ({ trainData, isTrainActive, nextStop, getStopStatus }) => {
+const TrainSchedule = ({ trainData, isTrainActive, nextStop, tracks = {}, getStopStatus }) => {
   if (!trainData?.STOPS?.length) return null;
 
   return (
@@ -89,6 +89,9 @@ const TrainSchedule = ({ trainData, isTrainActive, nextStop, getStopStatus }) =>
           (departed ? 'departed departedRow ' : '') +
           (isNext ? 'next nextStopHighlight ' : '');
         const status = getStopStatus(stop);
+        // Only stops still ahead; Flap re-animates just the changed
+        // character if the track switches (e.g. TRK 4 → TRK 5).
+        const track = !departed ? tracks[stop.STATION_2CHAR] : null;
 
         return (
           <div
@@ -103,6 +106,7 @@ const TrainSchedule = ({ trainData, isTrainActive, nextStop, getStopStatus }) =>
               title="Click to copy a share message"
             >
               <Flap text={stop.STATIONNAME || '—'} staggered={index < 6} />
+              {track && <Flap text={`TRK ${track}`} staggered={false} className="trackPill" />}
             </span>
             <span className="time r cell">
               <Flap text={fmtShort(stop.TIME)} staggered={false} />

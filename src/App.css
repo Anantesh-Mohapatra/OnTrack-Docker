@@ -30,6 +30,8 @@
   --board-green: #1f6a3a;
   --board-red:   #a93c1f;
   --board-dim:   #b0a487;
+  --track-pill-bg:  rgba(240, 128, 60, 0.14);
+  --track-pill-ink: #8a4410;
 
   --shadow-card: 0 1px 0 #fff inset, 0 10px 32px -18px rgba(40, 30, 15, 0.35);
 }
@@ -54,6 +56,8 @@ body.dark-analog {
   --board-green: #7ddf94;
   --board-red:   #ff6e54;
   --board-dim:   #8a8576;
+  --track-pill-bg:  rgba(243, 193, 74, 0.14);
+  --track-pill-ink: #f3c14a;
 
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 36px -18px rgba(0, 0, 0, 0.7);
 }
